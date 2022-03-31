@@ -2,9 +2,16 @@
 
 AddressInfo(
   client1   10.0.0.1 10.0.0.0/24	00:00:00:00:00:01,
+  client2   10.0.0.2 10.0.0.0/24	00:00:00:00:00:02,
   frontend  10.0.0.20 10.0.0.0/24	00:00:00:00:00:ff,
   backends  10.0.1.254 10.0.1.0/24 	00:00:00:00:01:ff,
   backend1  10.0.1.1 10.0.1.0/24 	00:00:00:00:01:01,
+  backend2  10.0.1.2 10.0.1.0/24 	00:00:00:00:01:02,
+  backend3  10.0.1.3 10.0.1.0/24 	00:00:00:00:01:03,
+  backend4  10.0.1.4 10.0.1.0/24 	00:00:00:00:01:04,
+  backend5  10.0.1.5 10.0.1.0/24 	00:00:00:00:01:05//,
+ // backendSwitch 00:00:00:00:01:ee,
+ // clientSwitch 00:00:00:00:00:ee
 );
 
 // Classify ARP req to 0, res to 1, IP to 2, rest to 3
@@ -15,12 +22,12 @@ eth_classifier0, eth_classifier1 :: Classifier( 12/0806 20/0001,
 );
 
 // Consistent backend mapper via source IP
-backend_map :: SourceIPHashMapper(1 0xbadbeef,
-                                 backends - backend1 - 0 1 4055
-                                //  backends - backend2 - 0 1 80147,
-                                //  backends - backend3 - 0 1 37181,
-                                //  backends - backend4 - 0 1 36356,
-                                //  backends - backend5 - 0 1 3719
+backend_map :: SourceIPHashMapper(5 0xbadbeef,
+                                 backends - backend1 - 0 1 4055,
+                                 backends - backend2 - 0 1 80147,
+                                 backends - backend3 - 0 1 37181,
+                                 backends - backend4 - 0 1 36356,
+                                 backends - backend5 - 0 1 3719
 );
 
 rewriter :: IPRewriter(backend_map,
@@ -54,8 +61,18 @@ eth_classifier1[2] -> Strip(14) -> CheckIPHeader() -> [1]rewriter;
 eth_classifier0[3] -> Discard;
 eth_classifier1[3] -> Discard;
 
+// rewriter[1] -> SetTCPChecksum() -> EtherEncap(0x800, frontend, clientSwitch) -> to_clients;
+// rewriter[0] -> SetTCPChecksum() -> EtherEncap(0x800, backends, backendSwitch) -> to_backends;
 rewriter[1] -> SetTCPChecksum() -> EtherEncap(0x800, frontend, client1) -> to_clients;
 rewriter[0] -> SetTCPChecksum() -> EtherEncap(0x800, backends, backend1) -> to_backends;
 
-// eth0 comes in
-// 
+
+// OUTPUT PATH
+// ip_to_extern :: GetIPAddress(16)
+//       -> CheckIPHeader
+//       -> EtherEncap(0x0800, extern:eth, extern_next_hop:eth)
+//       -> extern_dev;
+// ip_to_intern :: GetIPAddress(16)
+//       -> CheckIPHeader
+//       -> [0]intern_arpq
+//       -> intern_dev;

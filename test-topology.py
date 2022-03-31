@@ -4,9 +4,8 @@ from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 import os
 
-CLIENT_COUNT = 1
-BACKEND_COUNT = 1
-
+CLIENT_COUNT = 2
+BACKEND_COUNT = 5
 
 def ClickMininet():
 
@@ -28,8 +27,8 @@ def ClickMininet():
 
     info("*** Adding Click\n")
     filter = net.addHost("click", ip=None)
-    net.addLink(client_switch, filter, addr2="00:00:00:00:00:ff")
-    net.addLink(backend_switch, filter, addr2="00:00:00:00:01:ff")
+    net.addLink(client_switch, filter, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
+    net.addLink(backend_switch, filter, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
 
     net.addController(name='dc', controller=DefaultController)
 
@@ -38,7 +37,6 @@ def ClickMininet():
     net.start()
 
     for b in range(0, BACKEND_COUNT):
-        # backends[b].cmd("route add default gw 10.0.1.1 b{}-eth0".format(str(b+1)))
         backends[b].cmd("route add default gw 10.0.1.1 b{}-eth0".format(str(b+1)))
     
     # Add virt. IP to clients
@@ -52,8 +50,8 @@ def ClickMininet():
     info("*** Starting HTTP Servers\n")
     for b in range(0, BACKEND_COUNT):
         backends[b].cmd("arp -s 10.0.1.254 00:00:00:00:01:ff")
-        # backends[b].cmd("lighttpd -f ./backends/b{}.conf".format(str(b+1)))
         backends[b].cmd("python3 -m http.server 80 &")
+        # backends[b].cmd("lighttpd -f ./backends/b{}.conf".format(str(b+1)))
 
     info("*** Running CLI\n")
     CLI(net)
@@ -67,9 +65,3 @@ def ClickMininet():
 if __name__ == '__main__':
     setLogLevel('info')
     ClickMininet()
-
-
-
-# Packet arrives at address of filter
-# Anything on eth0 goes through pipeline
-# Need some sort of print as it arrives on the eth0?
