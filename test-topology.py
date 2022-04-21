@@ -8,16 +8,6 @@ import os
 
 CLIENT_COUNT = 2
 BACKEND_COUNT = 5
-
-# Linux router base
-class LinuxRouter(Node):
-    def config(self, **params):
-        super(LinuxRouter, self).config(**params)
-        self.cmd('sysctl net.ipv4.ip_forward=1')
-
-    def terminate(self):
-        self.cmd('sysctl net.ipv4.ip_forward=0')
-        super(LinuxRouter, self).terminate()
     
 # Topology
 class clickTopo(Topo):
@@ -34,20 +24,22 @@ class clickTopo(Topo):
         backends = []
         info("*** Adding {} Backends\n".format(BACKEND_COUNT))
         backend_switch = self.addSwitch("bs1")
-        # backend_router = self.addHost("bs1", cls=LinuxRouter)
         for b in range(0, BACKEND_COUNT):
-            backends.append(self.addHost("b"+str(b+1), ip="10.0.1.{}/24".format(str(b+1))))
-            self.addLink(backends[b], backend_switch, addr1="00:00:00:00:01:0"+str(b+1), params1={"ip": "10.0.1.{}/24".format(str(c+1))})
+            backends.append(self.addHost("b"+str(b+1), ip="10.0.1.{}/24".format(str(b+1)))) #, defaultRoute='via 10.0.1.20'))
+            self.addLink(backends[b], backend_switch, addr1="00:00:00:00:01:0"+str(b+1), params1={"ip": "10.0.1.{}/24".format(str(b+1))})
 
         info("*** Adding Click\n")
         filter = self.addHost("click", ip=None)
         self.addLink(client_switch, filter, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
+        # self.addLink(backend_switch, filter, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
+        
         self.addLink(backend_switch, filter, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
+        # self.addLink(backend_router, backend_switch)
 
 # Main method
 def run():
     topo = clickTopo()
-    net = Mininet(switch=OVSSwitch, build=False, topo=topo, controller=DefaultController, autoStaticArp=False)
+    net = Mininet(switch=OVSSwitch, build=False, topo=topo, controller=DefaultController, autoStaticArp=False, waitConnected=True)
     net.addController(name='dc', controller=DefaultController)
     info("*** Starting Network\n")
     net.build()
@@ -56,7 +48,7 @@ def run():
     backends = []
     for b in range(0, BACKEND_COUNT):
         backends.append(net.get('b' + str(b+1)))
-        backends[b].cmd("route add default gw 10.0.1.1 b{}-eth0".format(str(b+1)))
+        backends[b].cmd("route add default gw 10.0.1.20 b{}-eth0".format(str(b+1)))
     
     # Add virt. IP to clients
     clients = []
@@ -70,8 +62,9 @@ def run():
     info("*** Starting HTTP Servers\n")
     for b in range(0, BACKEND_COUNT):
         backends[b].cmd("arp -s 10.0.1.254 00:00:00:00:01:ff")
+        backends[b].cmd("arp -s 10.0.1."+str(b+1) + " 00:00:00:00:01:0"+str(b+1))
         backends[b].cmd("python3 -m http.server 80 &")
-        # backends[b].cmd("lighttpd -f ./backends/b{}.conf".format(str(b+1)))
+        # print("arp -s 10.0.1."+str(b+1) + " 00:00:00:00:01:0"+str(b+1))
 
     info("*** Running CLI\n")
     CLI(net)
