@@ -29,12 +29,19 @@ class clickTopo(Topo):
             self.addLink(backends[b], backend_switch, addr1="00:00:00:00:01:0"+str(b+1), params1={"ip": "10.0.1.{}/24".format(str(b+1))})
 
         info("*** Adding Click\n")
-        filter = self.addHost("click", ip=None)
-        self.addLink(client_switch, filter, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
-        # self.addLink(backend_switch, filter, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
         
-        self.addLink(backend_switch, filter, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
-        # self.addLink(backend_router, backend_switch)
+        nat = self.addHost("nat", ip=None)
+        nat2 = self.addHost("nat2", ip=None)
+        filter = self.addHost("filter", ip=None)
+        self.addLink(client_switch, filter, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
+        self.addLink(filter, nat)
+        self.addLink(filter, nat2)
+        self.addLink(backend_switch, nat, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
+        self.addLink(backend_switch, nat2)
+        # self.addLink(client_switch, nat, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
+
+        # self.addLink(client_switch, filter, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")        
+        # self.addLink(backend_switch, filter, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
 
 # Main method
 def run():
@@ -57,7 +64,9 @@ def run():
         clients[x].cmd("arp -s 10.0.0.20 00:00:00:00:00:FF")
 
     info("*** Starting Click Router\n")
-    net.get('click').cmd("click --unix /var/run/click -f ./NAT.cl & ")
+    net.get('nat').cmd("click --unix /var/run/click -f ./NAT.cl & ")
+    net.get('nat2').cmd("click --unix /var/run/click2 -f ./NAT2.cl & ")
+    net.get('filter').cmd("click --unix /var/run/click3 -f ./filter.cl & ")
 
     info("*** Starting HTTP Servers\n")
     for b in range(0, BACKEND_COUNT):
