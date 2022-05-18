@@ -9,34 +9,27 @@ backendInput :: FromDevice(filter-eth1);
 returnOut :: Queue(1024000) -> ToDevice(filter-eth0, BURST 51200);
 mainOut :: Queue(1024000) -> ToDevice(filter-eth1, BURST 51200);
 backupOut :: Queue(1024000) -> ToDevice(filter-eth2, BURST 51200);
-respond :: ARPResponder(10.0.0.0/24 00:00:00:00:00:dd);
 
-// Classify ARP req to 0, res to 1, rest to 2
-eth_classifier :: Classifier( 12/0806 20/0001,
-                              12/0806 20/0002,
-                              -
-);
- 
-// ARP queries for responses
-backendInput -> [0]eth_classifier; // Server responses go to classifier
-eth_classifier[0] -> respond;      // ARP requests go to ARP responder
-respond[0] -> mainOut;             // known backend responses
-respond[1] -> returnOut;           // Proxied ARP requests
-eth_classifier[1] -> mainOut;      // ARP responses go to NAT
+// ARP res to 0, rest to 1
+eth_classifier1 :: Classifier( 12/0806 20/0001,
+                               - );
+// ARP response
+eth_classifier2 :: Classifier(12/0806 20/0002,
+                              - );
 
-// All other traffic
-eth_classifier[2] -> returnOut;
-
-// Backend responses
-// backendInput -> returnOut;
-
-// Client to backend -  Non-reordering
-clientInput -> Strip(14) -> CheckIPHeader() -> clone;
-clone[0] -> Unstrip(14) -> mainOut;    // normal traffic
+// Client to backend - Separate ARP responses from other traffic
+clientInput -> eth_classifier2;
+eth_classifier2[0] -> mainOut;
+eth_classifier2[1] -> Strip(14) -> CheckIPHeader() -> clone;
+clone[0] -> Unstrip(14) -> mainOut;    
 clone[1] -> clas;
-clas[0] -> Unstrip(14) -> backupOut;   // Separated SYN packets
+clas[0] -> Unstrip(14) -> backupOut;
 clas[1] -> Discard;
 
+// Backend to client - Separate ARP requests
+backendInput -> [0]eth_classifier1;
+eth_classifier1[0] -> returnOut;           // ARP requests from NAT to client
+eth_classifier1[1] -> returnOut;           // All other traffic
  
  
 //                             normal traffic
@@ -52,12 +45,9 @@ clas[1] -> Discard;
 // Split traffic into two copies, drop all but SYN on copy
 
 // TODO
-//   Drop ARP packets?
 //   Handle UDP streams
 
-// Client to backend - Re-ordering approach
-// clientInput -> Strip(14) -> CheckIPHeader() -> clas;
-// clas[0] -> Unstrip(14) -> clone;
-// clas[1] -> Unstrip(14) -> mainOut;
-// clone[0] -> mainOut;
-// clone[1] -> backupOut;
+// Classify ARP req to 0, res to 1, rest to 2
+// eth_classifier1 :: Classifier( 12/0806 20/0001,
+//                                12/0806 20/0002,
+//                                - );

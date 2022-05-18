@@ -34,7 +34,7 @@ class clickTopo(Topo):
         nat2 = self.addHost("nat2", ip=None)
         filter = self.addHost("filter", ip=None)
         self.addLink(client_switch, filter, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
-        self.addLink(filter, nat)
+        self.addLink(filter, nat) #, addr="00:00:00:00:00:dd")
         self.addLink(filter, nat2)
         self.addLink(backend_switch, nat, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
         self.addLink(backend_switch, nat2)

@@ -41,10 +41,10 @@ rewriter :: IPRewriter(backend_map,
 );
 
 // Interfaces
-from_clients :: FromDevice(nat-eth0);
-from_backends :: FromDevice(nat-eth1);
-to_clients :: Queue(1024000) -> ToDevice(nat-eth0, BURST 51200);
-to_backends :: Queue(1024000) -> ToDevice(nat-eth1, BURST 51200);
+from_clients :: FromDevice(nat2-eth0);
+from_backends :: FromDevice(nat2-eth1);
+to_clients :: Queue(1024000) -> ToDevice(nat2-eth0, BURST 51200);
+to_backends :: Queue(1024000) -> ToDevice(nat2-eth1, BURST 51200);
 
 // Packets go to classifier
 from_clients -> [0]eth_classifier0;
