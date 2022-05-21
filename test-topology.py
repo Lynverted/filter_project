@@ -8,40 +8,55 @@ import os
 
 CLIENT_COUNT = 2
 BACKEND_COUNT = 5
-    
+
 # Topology
 class clickTopo(Topo):
     def __init__(self):
         Topo.__init__(self)
-        # net = Mininet(switch=OVSSwitch, build=False, topo=None, controller=DefaultController, autoStaticArp=False)
         clients = []
+        self.serverswRules = []
+        self.clientswRules = []
+
+        info("*** Adding Switches\n")
+        client_switch = self.addSwitch("cs1", dpid="101")
+        backend_switch = self.addSwitch("bs1", dpid="202")
+
+        info("*** Adding Click\n")
+        nat = self.addHost("nat", ip=None)
+        nat2 = self.addHost("nat2", ip=None)
+        filter = self.addHost("filter", ip=None)
+        self.addLink(client_switch, filter, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
+        self.addLink(client_switch, nat2, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
+        self.addLink(filter, nat) #, addr="00:00:00:00:00:dd")
+        self.addLink(filter, nat2)
+        self.addLink(backend_switch, nat, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
+        self.addLink(backend_switch, nat2, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
+
+
         info("*** Adding {} Clients\n".format(CLIENT_COUNT))
-        client_switch = self.addSwitch("cs1")
         for c in range(0, CLIENT_COUNT):
             clients.append(self.addHost("c"+str(c+1), ip="10.0.0.{}/24".format(str(c+1))))
             self.addLink(clients[c], client_switch, addr1="00:00:00:00:00:0"+str(c+1), params1={"ip": "10.0.0.{}/24".format(str(c+1))})
 
         backends = []
         info("*** Adding {} Backends\n".format(BACKEND_COUNT))
-        backend_switch = self.addSwitch("bs1")
         for b in range(0, BACKEND_COUNT):
             backends.append(self.addHost("b"+str(b+1), ip="10.0.1.{}/24".format(str(b+1)))) #, defaultRoute='via 10.0.1.20'))
             self.addLink(backends[b], backend_switch, addr1="00:00:00:00:01:0"+str(b+1), params1={"ip": "10.0.1.{}/24".format(str(b+1))})
 
-        info("*** Adding Click\n")
-        
-        nat = self.addHost("nat", ip=None)
-        nat2 = self.addHost("nat2", ip=None)
-        filter = self.addHost("filter", ip=None)
-        self.addLink(client_switch, filter, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
-        self.addLink(filter, nat) #, addr="00:00:00:00:00:dd")
-        self.addLink(filter, nat2)
-        self.addLink(backend_switch, nat, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
-        self.addLink(backend_switch, nat2)
         # self.addLink(client_switch, nat, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
 
         # self.addLink(client_switch, filter, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")        
         # self.addLink(backend_switch, filter, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
+
+# Abstract out DPCTL commands
+# class DSwitch( OVSSwitch ):
+#     def start( self, controller ):
+#         return OVSSwitch.start(self, controller)
+
+#     def dpctl( self, *args ):
+#         "Run ovs-ofctl command"
+#         return self.cmd( 'ovs-ofctl -OOpenFlow13', args[ 0 ], self, *args[ 1: ] )
 
 # Main method
 def run():
@@ -67,6 +82,31 @@ def run():
     net.get('nat').cmd("click --unix /var/run/click -f ./NAT.cl & ")
     net.get('nat2').cmd("click --unix /var/run/click2 -f ./NAT2.cl & ")
     net.get('filter').cmd("click --unix /var/run/click3 -f ./filter.cl & ")
+
+    # FF rules for the switches
+    clientsw = net.get("cs1")
+    clientsw.cmd("ovs-ofctl -OOpenFlow13 add-group cs1 'group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2'")
+    clientsw.cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_dst=00:00:00:00:00:FF,actions=group:1'")
+    # clientsw.dpctl('add-group',
+    #         'group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2')
+    # clientsw.dpctl('add-flow', 'dl_dst=00:00:00:00:00:FF,actions=group:1')
+    # for cmd in topo.clientswRules:
+    #     clientsw.dpctl(*cmd)
+
+    serversw = net.get("bs1")
+    serversw.cmd("ovs-ofctl -OOpenFlow13 add-group bs1 'group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2'")
+    serversw.cmd("ovs-ofctl -OOpenFlow13 add-flow bs1 'dl_dst=00:00:00:00:01:FF,actions=group:1'")
+    # serversw.dpctl('add-group',
+    #         'group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2')
+    # serversw.dpctl('add-flow', 'dl_dst=00:00:00:00:01:FF,actions=group:1')
+    # for cmd in topo.serverswRules:
+    #     serversw.dpctl(*cmd)
+
+    # serversw.cmd('ovs-ofctl -OOpenFlow13 add-group roup_id=1,type=ff,bucket=watch_port:6,output:6,bucket=watch_port:7,output:7')
+    # dpctl add-group group_id=1,type=ff,bucket=watch_port:6,output:6,bucket=watch_port:7,output:7 -O OpenFlow11
+
+    # serversw.cmd('dpctl add-group group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2')
+    # serversw.cmd('dpctl add-flow dl_dst=00:00:00:00:01:FF,actions=group:1')
 
     info("*** Starting HTTP Servers\n")
     for b in range(0, BACKEND_COUNT):
