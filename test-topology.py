@@ -86,27 +86,13 @@ def run():
     # FF rules for the switches
     clientsw = net.get("cs1")
     clientsw.cmd("ovs-ofctl -OOpenFlow13 add-group cs1 'group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2'")
-    clientsw.cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_dst=00:00:00:00:00:FF,actions=group:1'")
-    # clientsw.dpctl('add-group',
-    #         'group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2')
-    # clientsw.dpctl('add-flow', 'dl_dst=00:00:00:00:00:FF,actions=group:1')
-    # for cmd in topo.clientswRules:
-    #     clientsw.dpctl(*cmd)
+    clientsw.cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_type=0x806,nw_dst=10.0.0.20,priority=2,actions=group:1'")
+    clientsw.cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_dst=00:00:00:00:00:FF,priority=1,actions=group:1'")
 
     serversw = net.get("bs1")
     serversw.cmd("ovs-ofctl -OOpenFlow13 add-group bs1 'group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2'")
-    serversw.cmd("ovs-ofctl -OOpenFlow13 add-flow bs1 'dl_dst=00:00:00:00:01:FF,actions=group:1'")
-    # serversw.dpctl('add-group',
-    #         'group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2')
-    # serversw.dpctl('add-flow', 'dl_dst=00:00:00:00:01:FF,actions=group:1')
-    # for cmd in topo.serverswRules:
-    #     serversw.dpctl(*cmd)
-
-    # serversw.cmd('ovs-ofctl -OOpenFlow13 add-group roup_id=1,type=ff,bucket=watch_port:6,output:6,bucket=watch_port:7,output:7')
-    # dpctl add-group group_id=1,type=ff,bucket=watch_port:6,output:6,bucket=watch_port:7,output:7 -O OpenFlow11
-
-    # serversw.cmd('dpctl add-group group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2')
-    # serversw.cmd('dpctl add-flow dl_dst=00:00:00:00:01:FF,actions=group:1')
+    serversw.cmd("ovs-ofctl -OOpenFlow13 add-flow bs1 'dl_type=0x806,nw_dst=10.0.0.20,priority=2,actions=group:1'")     # this is wrong
+    serversw.cmd("ovs-ofctl -OOpenFlow13 add-flow bs1 'dl_dst=00:00:00:00:01:FF,priority=1,actions=group:1'")
 
     info("*** Starting HTTP Servers\n")
     for b in range(0, BACKEND_COUNT):

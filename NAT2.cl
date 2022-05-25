@@ -42,12 +42,13 @@ rewriter :: IPRewriter(backend_map,
 
 // Interfaces
 from_clients :: FromDevice(nat2-eth0);
-from_backends :: FromDevice(nat2-eth1);
+from_filter :: FromDevice(nat2-eth1);
+from_backends :: FromDevice(nat2-eth2);
 to_clients :: Queue(1024000) -> ToDevice(nat2-eth0, BURST 51200);
-to_backends :: Queue(1024000) -> ToDevice(nat2-eth1, BURST 51200);
+to_backends :: Queue(1024000) -> ToDevice(nat2-eth2, BURST 51200);
 
 // Packets go to classifier
-from_clients -> [0]eth_classifier0;
+from_clients, from_filter -> [0]eth_classifier0;
 from_backends -> [0]eth_classifier1;
 
 // ARP requests
@@ -64,5 +65,5 @@ eth_classifier0[3] -> Discard;
 eth_classifier1[3] -> Discard;
 
 rewriter[0] -> SetTCPChecksum() -> [0]backend_query[0] -> to_backends;
-rewriter[1] -> SetTCPChecksum() -> [0]frontend_query[0] ->  to_clients;
+rewriter[1] -> SetTCPChecksum() -> [0]frontend_query[0] -> to_clients;
 // rewriter[0] -> SetTCPChecksum() -> EtherEncap(0x800, backends, backend1) -> to_backends;
