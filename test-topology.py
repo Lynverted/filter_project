@@ -91,14 +91,14 @@ def run():
 
     serversw = net.get("bs1")
     serversw.cmd("ovs-ofctl -OOpenFlow13 add-group bs1 'group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2'")
-    serversw.cmd("ovs-ofctl -OOpenFlow13 add-flow bs1 'dl_type=0x806,nw_dst=10.0.0.20,priority=2,actions=group:1'")     # this is wrong
+    serversw.cmd("ovs-ofctl -OOpenFlow13 add-flow bs1 'dl_type=0x806,nw_dst=10.0.0.20,priority=2,actions=group:1'")
     serversw.cmd("ovs-ofctl -OOpenFlow13 add-flow bs1 'dl_dst=00:00:00:00:01:FF,priority=1,actions=group:1'")
 
     info("*** Starting HTTP Servers\n")
     for b in range(0, BACKEND_COUNT):
         backends[b].cmd("arp -s 10.0.1.254 00:00:00:00:01:ff")
         backends[b].cmd("arp -s 10.0.1."+str(b+1) + " 00:00:00:00:01:0"+str(b+1))
-        backends[b].cmd("python3 -m http.server 80 &")
+        backends[b].cmd("python3 server.py &")
         # print("arp -s 10.0.1."+str(b+1) + " 00:00:00:00:01:0"+str(b+1))
 
     info("*** Running CLI\n")
