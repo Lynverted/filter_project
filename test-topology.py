@@ -45,18 +45,8 @@ class clickTopo(Topo):
             self.addLink(backends[b], backend_switch, addr1="00:00:00:00:01:0"+str(b+1), params1={"ip": "10.0.1.{}/24".format(str(b+1))})
 
         # self.addLink(client_switch, nat, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
-
         # self.addLink(client_switch, filter, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")        
         # self.addLink(backend_switch, filter, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
-
-# Abstract out DPCTL commands
-# class DSwitch( OVSSwitch ):
-#     def start( self, controller ):
-#         return OVSSwitch.start(self, controller)
-
-#     def dpctl( self, *args ):
-#         "Run ovs-ofctl command"
-#         return self.cmd( 'ovs-ofctl -OOpenFlow13', args[ 0 ], self, *args[ 1: ] )
 
 # Main method
 def run():
@@ -79,9 +69,15 @@ def run():
         clients[x].cmd("arp -s 10.0.0.20 00:00:00:00:00:FF")
 
     info("*** Starting Click Router\n")
-    net.get('nat').cmd("click --unix /var/run/click -f ./NAT.cl & ")
+    net.get('nat').cmd("click --unix /var/run/click -w -f ./NAT.cl & ")
     net.get('nat2').cmd("click --unix /var/run/click2 -f ./NAT2.cl & ")
     net.get('filter').cmd("click --unix /var/run/click3 -f ./filter.cl & ")
+
+    # Removing large packet sending for click MTU requirements
+    flag = ["tso", "gso", "gro"]
+    for x in range(0, 6):
+        net.get('nat').cmd("sudo ethtool --offload nat-eth" + str(x % 2) + " " + flag[x/2] + " off")
+        net.get('nat2').cmd("sudo ethtool --offload nat-eth" + str(x % 2) + " " + flag[x/2] + " off")
 
     # FF rules for the switches
     clientsw = net.get("cs1")
@@ -98,7 +94,9 @@ def run():
     for b in range(0, BACKEND_COUNT):
         backends[b].cmd("arp -s 10.0.1.254 00:00:00:00:01:ff")
         backends[b].cmd("arp -s 10.0.1."+str(b+1) + " 00:00:00:00:01:0"+str(b+1))
-        backends[b].cmd("python3 server.py &")
+        # backends[b].cmd("sudo python3 server.py &")
+        backends[b].cmd("sudo lighttpd -f backends/b"+str(b+1) + ".conf")
+        # sudo lighttpd -f config/" + servers[i].IP() + ".conf"
         # print("arp -s 10.0.1."+str(b+1) + " 00:00:00:00:01:0"+str(b+1))
 
     info("*** Running CLI\n")

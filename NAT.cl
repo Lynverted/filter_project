@@ -21,7 +21,7 @@ eth_classifier0, eth_classifier1 :: Classifier( 12/0806 20/0001,
                                                 -
 );
 
-backend_query :: ARPQuerier(frontend)
+backend_query :: ARPQuerier(backends)
 frontend_query :: ARPQuerier(frontend)
 
 // Consistent backend mapper via source IP
@@ -35,9 +35,9 @@ backend_map :: SourceIPHashMapper(5 0xbadbeef,
 
 rewriter :: IPRewriter(backend_map,
                        drop,
-                       TCP_TIMEOUT 30,
-                       TCP_DONE_TIMEOUT 30,
-                       TCP_NODATA_TIMEOUT 30
+                       TCP_TIMEOUT 5,
+                       TCP_DONE_TIMEOUT 5,
+                       TCP_NODATA_TIMEOUT 5
 );
 
 // Interfaces
@@ -53,16 +53,27 @@ from_backends -> [0]eth_classifier1;
 // ARP requests
 eth_classifier0[0] -> Discard;
 eth_classifier1[0] -> Discard;
+
 // ARP responses to querier
 eth_classifier0[1] -> [1]frontend_query; // client
-eth_classifier1[1] -> [1]backend_query; // backend
+eth_classifier1[1] -> [1]backend_query;  // backend
 
+// IP packets
 eth_classifier0[2] -> Strip(14) -> CheckIPHeader() -> [0]rewriter; // Clients
 eth_classifier1[2] -> Strip(14) -> CheckIPHeader() -> [1]rewriter; // Backends
 
+// Anything else
 eth_classifier0[3] -> Discard;
 eth_classifier1[3] -> Discard;
 
+// Packets going to backend are rewritten according to map
+// Packets returning from backend, if not matching pattern, are dropped
 rewriter[0] -> SetTCPChecksum() -> [0]backend_query[0] -> to_backends;
-rewriter[1] -> SetTCPChecksum() -> [0]frontend_query[0] ->  to_clients;
+rewriter[1] -> SetTCPChecksum() -> [0]frontend_query[0] -> to_clients;
+
+
+
+// check[1] -> Print("big:") -> Discard;
+// rewriter[0] -> SetTCPChecksum() -> Print(before_backend) -> [0]backend_query[0] -> Print(after_backend) -> to_backends;
+// rewriter[1] -> SetTCPChecksum() -> Print(before_client) -> [0]frontend_query[0] -> Print(after_client) -> to_clients;
 // rewriter[0] -> SetTCPChecksum() -> EtherEncap(0x800, backends, backend1) -> to_backends;
