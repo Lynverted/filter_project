@@ -77,7 +77,10 @@ def run():
     flag = ["tso", "gso", "gro"]
     for x in range(0, 6):
         net.get('nat').cmd("sudo ethtool --offload nat-eth" + str(x % 2) + " " + flag[x/2] + " off")
-        net.get('nat2').cmd("sudo ethtool --offload nat-eth" + str(x % 2) + " " + flag[x/2] + " off")
+        if(x % 2): 
+            net.get('nat2').cmd("sudo ethtool --offload nat2-eth" + str((x % 2)+1) + " " + flag[x/2] + " off")
+        else:
+            net.get('nat2').cmd("sudo ethtool --offload nat2-eth" + str(x % 2) + " " + flag[x/2] + " off")
 
     # FF rules for the switches
     clientsw = net.get("cs1")

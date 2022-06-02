@@ -21,7 +21,7 @@ eth_classifier0, eth_classifier1 :: Classifier( 12/0806 20/0001,
                                                 -
 );
 
-backend_query :: ARPQuerier(frontend)
+backend_query :: ARPQuerier(backends)
 frontend_query :: ARPQuerier(frontend)
 
 // Consistent backend mapper via source IP
@@ -35,9 +35,9 @@ backend_map :: SourceIPHashMapper(5 0xbadbeef,
 
 rewriter :: IPRewriter(backend_map,
                        drop,
-                       TCP_TIMEOUT 30,
-                       TCP_DONE_TIMEOUT 30,
-                       TCP_NODATA_TIMEOUT 30
+                       TCP_TIMEOUT 5,
+                       TCP_DONE_TIMEOUT 5,
+                       TCP_NODATA_TIMEOUT 5
 );
 
 // Interfaces
