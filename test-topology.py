@@ -5,8 +5,9 @@ from mininet.topo import Topo
 from mininet.node import Node
 from mininet.log import setLogLevel, info
 import os
+import subprocess
 
-CLIENT_COUNT = 2
+CLIENT_COUNT = 5
 BACKEND_COUNT = 5
 
 # Topology
@@ -47,6 +48,20 @@ class clickTopo(Topo):
         # self.addLink(client_switch, nat, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")
         # self.addLink(client_switch, filter, addr1="00:00:00:00:00:ee", addr2="00:00:00:00:00:ff")        
         # self.addLink(backend_switch, filter, addr1="00:00:00:00:01:ee", addr2="00:00:00:00:01:ff")
+
+#WRK instances - output destination/file, number of clients, duration
+def wrk(clientsList, outFile, clients, dur):
+    popens = {}
+    for x in range(CLIENT_COUNT):
+        log = open(outFile, 'a')
+        log.flush()
+        popens[x] = clientsList[x].popen("wrk -t 2 -c " + str(clients) + " -d " + str(dur) + " http://10.0.0.20/ &", stdout=log, shell=True, close_fds=True)
+        # http://10.1.0.20/bunny_1s_8000kbit/size.html
+        # http://10.1.0.20/index.html
+    print("Running clients")
+    for x in range(CLIENT_COUNT):
+         popens[x].communicate()
+    print("all complete")
 
 # Main method
 def run():
@@ -102,8 +117,20 @@ def run():
         # sudo lighttpd -f config/" + servers[i].IP() + ".conf"
         # print("arp -s 10.0.1."+str(b+1) + " 00:00:00:00:01:0"+str(b+1))
 
+
+    info("*** Running WRK instances\n")
+    wrk(clients, "output/test2.txt", 5, 30)
+
+    # log = open("output/test3.txt", 'a')
+    # log.flush()
+    # popen = clients[1].popen("wrk -t 2 -c 5 -d 10 http://10.0.0.20/", stdout=log, stderr=log)
+    # popen = clients[1].popen(["wrk", "-t", "2", "-c", "5", "-d", "10", "http://10.0.0.20/"], stdout=log, stderr=log, close_fds=True)
+    # popen.wait()
+    # log.close()
+    # clients[1].cmd("wrk -t 2 -c 5 -d 10 http://10.0.0.20/")
+
     info("*** Running CLI\n")
-    CLI(net)
+    # CLI(net)
 
     info("*** Stopping Network\n")
     net.stop()
