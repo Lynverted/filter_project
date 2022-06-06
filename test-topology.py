@@ -117,19 +117,12 @@ def run():
         # sudo lighttpd -f config/" + servers[i].IP() + ".conf"
         # print("arp -s 10.0.1."+str(b+1) + " 00:00:00:00:01:0"+str(b+1))
 
-
+    # net.get('nat2').cmd("sudo ip link set nat2-eth1 down")   # For non-copying testing purposes
+    
     info("*** Running WRK instances\n")
-    wrk(clients, "output/test2.txt", 5, 30)
+    wrk(clients, "output/FAFO.txt", 50, 120)
 
-    # log = open("output/test3.txt", 'a')
-    # log.flush()
-    # popen = clients[1].popen("wrk -t 2 -c 5 -d 10 http://10.0.0.20/", stdout=log, stderr=log)
-    # popen = clients[1].popen(["wrk", "-t", "2", "-c", "5", "-d", "10", "http://10.0.0.20/"], stdout=log, stderr=log, close_fds=True)
-    # popen.wait()
-    # log.close()
-    # clients[1].cmd("wrk -t 2 -c 5 -d 10 http://10.0.0.20/")
-
-    info("*** Running CLI\n")
+    # info("*** Running CLI\n")
     # CLI(net)
 
     info("*** Stopping Network\n")
