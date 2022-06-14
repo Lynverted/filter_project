@@ -24,14 +24,32 @@ fi
 if [ "$1" == "time" ]
     then
         counter=0
+        delay=0
+        nFail=0
+        sleep=0
+
+        if [ "$2" == "wrk" ]
+        then 
+            delay=10
+            nFail=12
+            sleep=10
+        fi
+        
+        if [ "$2" == "gst" ]
+        then 
+            delay=30
+            nFail=20
+            sleep=50
+        fi
+        
         while true; do
             # Wait N seconds before first failover
             if [ "$counter" -eq "0" ] ; then
-                sleep 10
+                sleep $delay
             fi
 
             # After N triggered failovers, exit
-            if [ "$counter" -ge "12" ] ; then
+            if [ "$counter" -ge "$nFail" ] ; then
                 exit
             fi
 
@@ -49,6 +67,6 @@ if [ "$1" == "time" ]
                 down=false
             fi
             counter=$((counter+1))
-            sleep 10
+            sleep $sleep
         done
 fi

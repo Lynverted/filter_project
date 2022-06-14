@@ -5,7 +5,7 @@ from mininet.topo import Topo
 from mininet.node import Node
 from mininet.log import setLogLevel, info
 import os
-import subprocess
+import time 
 
 CLIENT_COUNT = 5
 BACKEND_COUNT = 5
@@ -63,6 +63,23 @@ def wrk(clientsList, outFile, clients, dur):
          popens[x].communicate()
     print("all complete")
 
+# GST instances - output destination/file, list of clients
+def video(clientsList, folder):
+    print("Running Locust instances...")
+    popens = {}
+    for x in range(CLIENT_COUNT):
+        popens[x] = clientsList[x].popen("gst-launch-1.0 -vvv playbin uri='http://10.0.0.20/bunny.mpd' \
+            video-sink=fakevideosink 2>&1 | tee >(ts '%Y-%m-%d %H:%M:%.S' > /home/lyn/filter/output/gst/" \
+                + folder + "/raw" + str(x) + ".log) &", shell=True)
+        time.sleep(1)
+        if x % 20 == 0 and x != 0:
+           print(x)
+           time.sleep(40)
+    print("Flows active")
+    for x in range(CLIENT_COUNT):
+        popens[x].communicate()
+    print("All complete.")
+
 # Main method
 def run():
     topo = clickTopo()
@@ -119,8 +136,15 @@ def run():
 
     # net.get('nat2').cmd("sudo ip link set nat2-eth1 down")   # For non-copying testing purposes
     
-    info("*** Running WRK instances\n")
-    wrk(clients, "output/FAFO.txt", 50, 120)
+    # info("*** Running GST instances\n")
+    # experName = "FO"
+    # video(clients, experName)
+    # os.system('sudo java -jar gStreamerParser/out/parser.jar ' + experName + ' ' + str(CLIENT_COUNT))
+    # os.system('sudo python3 scripts/sort-gst.py ' + experName + ' ' + str(CLIENT_COUNT))
+    # os.system('cat results/gst/' + experName +'/combined.txt | jq')
+
+    # info("*** Running WRK instances\n")
+    # wrk(clients, "output/fuck.txt", 75, 120)
 
     # info("*** Running CLI\n")
     # CLI(net)
@@ -134,3 +158,5 @@ def run():
 if __name__ == '__main__':
     setLogLevel('info')
     run()
+
+# gst-launch-1.0 -vvv playbin uri='http://10.0.0.20/bunny.mpd' video-sink=fakevideosink 2>&1 | tee >(ts '%Y-%m-%d %H:%M:%.S' > /home/lyn/filter/output/gst/raw.log)
