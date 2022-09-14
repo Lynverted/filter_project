@@ -60,10 +60,18 @@ class clickTopo(Topo):
 
         info("*** Adding suricata\n")
         suri = self.addHost("s1", ip="10.0.1.2/24", defaultRoute='via 10.0.1.1')
-        self.addLink(suri, suriC_switch)#, params1={"ip": "10.0.0.10/24"})
-        self.addLink(suri, suriB_switch, params1={"ip": "10.0.1.3/24"})
-        # self.addLink(suri, client_router, params2={"ip": "10.0.1.1/24"})
-        # self.addLink(suri, backend_router, params1={"ip": "10.0.1.11/24"}, params2={"ip": "10.0.1.20/24"})
+        self.addLink(suri, suriC_switch, addr1="00:00:00:00:01:02")
+        self.addLink(suri, suriB_switch, addr1="00:00:00:00:01:03", params1={"ip": "10.0.1.3/24"})
+        
+        # Different addresses
+        # suri2 = self.addHost("s2", ip="10.0.1.5/24", defaultRoute='via 10.0.1.1')
+        # self.addLink(suri2, suriC_switch, addr1="00:00:00:00:01:05")
+        # self.addLink(suri2, suriB_switch, addr1="00:00:00:00:01:06", params1={"ip": "10.0.1.6/24"})
+
+        # Copy addresses
+        suri2 = self.addHost("s2", ip="10.0.1.2/24", defaultRoute='via 10.0.1.1')
+        self.addLink(suri2, suriC_switch, addr1="00:00:00:00:01:02")
+        self.addLink(suri2, suriB_switch, addr1="00:00:00:00:01:03", params1={"ip": "10.0.1.3/24"})
 
 # Main method
 def run():
@@ -73,24 +81,22 @@ def run():
     net.build()
     net.start()
 
-    # c1 = net.addController( 'c1', controller=RemoteController, port=6633 )
-    # for controller in net.controllers:
-        # controller.start()
-    # net.get("r1").start( [ c1 ])
-    
-
     info("*** Starting HTTP Servers\n")
     backends = []
     for b in range(0, BACKEND_COUNT):
         backends.append(net.get('b' + str(b+1)))
         backends[b].cmd("sudo lighttpd -f ../backends/b"+str(b+1) + ".conf")
-    #     backends[b].cmd("route add default gw 10.0.1.20 b{}-eth0".format(str(b+1)))
     
     # FF rules for the switches
-    # clientsw = net.get("cs1")
-    # clientsw.cmd("ovs-ofctl -OOpenFlow13 add-group cs1 'group_id=1,type=ff,bucket=watch_port:1,output:1,bucket=watch_port:2,output:2'")
-    # clientsw.cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_type=0x806,nw_dst=10.0.0.10,priority=2,actions=group:1'")
-    # clientsw.cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_dst=00:00:00:00:00:FF,priority=1,actions=group:1'")
+    ss1 = net.get("ss1")
+    ss1.cmd("ovs-ofctl -OOpenFlow13 add-group ss1 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
+    ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_type=0x800,nw_dst=10.0.1.2,priority=2,actions=group:1'")
+    ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_dst=00:00:00:00:01:02,priority=1,actions=group:1'")
+
+    ss2 = net.get("ss2")
+    ss2.cmd("ovs-ofctl -OOpenFlow13 add-group ss2 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
+    ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_type=0x806,nw_dst=10.0.1.3,priority=2,actions=group:1'")
+    ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_dst=00:00:00:00:01:03,priority=1,actions=group:1'")
 
     s1 = net.get("s1")
     s1.cmd("suricata -c config/suricata.yaml --af-packet &")
@@ -98,6 +104,14 @@ def run():
     s1.cmd("ip route add 10.0.1.4 dev s1-eth1")
     s1.cmd("ip route add 10.0.0.0/24 via 10.0.1.1")
     s1.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
+
+    s2 = net.get("s2")
+    # s2.cmd("suricata -c config/suricata.yaml --af-packet &")
+    s2.cmd("ip route add 10.0.1.1 dev s2-eth0")
+    s2.cmd("ip route add 10.0.1.4 dev s2-eth1")
+    s2.cmd("ip route add 10.0.0.0/24 via 10.0.1.1")
+    s2.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
+
     net.get("r1").cmd("ip route add 10.0.2.0/24 via 10.0.1.2")
     net.get("r2").cmd("ip route add 10.0.0.0/24 via 10.0.1.3")
 
