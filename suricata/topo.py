@@ -95,7 +95,7 @@ def run():
 
     ss2 = net.get("ss2")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-group ss2 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
-    ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_type=0x806,nw_dst=10.0.1.3,priority=2,actions=group:1'")
+    ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_type=0x800,nw_dst=10.0.1.3,priority=2,actions=group:1'")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_dst=00:00:00:00:01:03,priority=1,actions=group:1'")
 
     s1 = net.get("s1")
@@ -106,7 +106,7 @@ def run():
     s1.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
 
     s2 = net.get("s2")
-    # s2.cmd("suricata -c config/suricata.yaml --af-packet &")
+    s2.cmd("suricata -c config/suricata2.yaml --af-packet &")
     s2.cmd("ip route add 10.0.1.1 dev s2-eth0")
     s2.cmd("ip route add 10.0.1.4 dev s2-eth1")
     s2.cmd("ip route add 10.0.0.0/24 via 10.0.1.1")
@@ -128,3 +128,10 @@ def run():
 if __name__ == '__main__':
     setLogLevel('info')
     run()
+
+
+
+
+    # s1.cmd("sysctl -w net.ipv6.conf.all.disable_ipv6=1")
+    # s1.cmd("sysctl -w net.ipv6.conf.default.disable_ipv6=1")
+    # s1.cmd("sysctl -w net.ipv6.conf.lo.disable_ipv6=1")

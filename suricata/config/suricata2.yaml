@@ -58,7 +58,7 @@ vars:
 # The default logging directory.  Any log or output file will be
 # placed here if it's not specified with a full path name. This can be
 # overridden with the -l command line parameter.
-default-log-dir: /home/lyn/filter/suricata/log/suri1
+default-log-dir: /home/lyn/filter/suricata/log/suri2
 
 # Global stats configuration
 stats:
@@ -586,22 +586,22 @@ logging:
 
 # Linux high speed capture support
 af-packet:
-  - interface: s1-eth0
+  - interface: s2-eth0
     threads: 1
     defrag: yes
     cluster-type: cluster_flow
-    cluster-id: 96
+    cluster-id: 98
     copy-mode: ips
-    copy-iface: s1-eth1
+    copy-iface: s2-eth1
     buffer-size: 64535
     use-mmap: no
-  - interface: s1-eth1
+  - interface: s2-eth1
     threads: 1
-    cluster-id: 95
+    cluster-id: 97
     defrag: yes
     cluster-type: cluster_flow
     copy-mode: ips
-    copy-iface: s1-eth0
+    copy-iface: s2-eth0
     buffer-size: 64535
     use-mmap: no
 
@@ -685,7 +685,7 @@ af-packet:
 
 # Cross platform libpcap capture support
 pcap:
-  - interface: s1-eth0
+  - interface: s2-eth0
     # On Linux, pcap will try to use mmap'ed capture and will use "buffer-size"
     # as total memory used by the ring. So set this to something bigger
     # than 1% of your bandwidth.
