@@ -86,6 +86,7 @@ def run():
     for b in range(0, BACKEND_COUNT):
         backends.append(net.get('b' + str(b+1)))
         backends[b].cmd("sudo lighttpd -f ../backends/b"+str(b+1) + ".conf")
+        # backends[b].cmd("socat TCP4-LISTEN:56397,forever,retry OPEN:/dev/null &")
     
     # FF rules for the switches
     ss1 = net.get("ss1")
@@ -98,8 +99,11 @@ def run():
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_type=0x800,nw_dst=10.0.1.3,priority=2,actions=group:1'")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_dst=00:00:00:00:01:03,priority=1,actions=group:1'")
 
+    # net.get("filter").cmd("click -u /var/run/click -f filter.cl")
+
     s1 = net.get("s1")
-    s1.cmd("suricata -c config/suricata.yaml --af-packet &")
+    s1.cmd("click -u /var/run/click -f filter.cl &")
+    # s1.cmd("suricata -c config/suricata.yaml --af-packet &")
     s1.cmd("ip route add 10.0.1.1 dev s1-eth0")
     s1.cmd("ip route add 10.0.1.4 dev s1-eth1")
     s1.cmd("ip route add 10.0.0.0/24 via 10.0.1.1")
@@ -123,15 +127,19 @@ def run():
     os.system('sudo mn -c')
     os.system('sudo pkill -f "lighttpd"')
     os.system('sudo pkill -f "suricata"')
-
+    os.system('sudo rm /var/run/click')
 
 if __name__ == '__main__':
     setLogLevel('info')
     run()
 
 
-
+# click -u /var/run/click -f lb-click/lb.click
 
     # s1.cmd("sysctl -w net.ipv6.conf.all.disable_ipv6=1")
     # s1.cmd("sysctl -w net.ipv6.conf.default.disable_ipv6=1")
     # s1.cmd("sysctl -w net.ipv6.conf.lo.disable_ipv6=1")
+
+
+# gst-launch-1.0 -vvv playbin uri='http://10.0.0.20/bunny.mpd' video-sink=fakevideosink 2>&1 | tee >(ts '%Y-%m-%d %H:%M:%.S' > /home/lyn/filter/output/gst/" \
+                # + folder + "/raw" + str(x) + ".log) &", shell=True
