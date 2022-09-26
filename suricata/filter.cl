@@ -11,10 +11,10 @@ vlan2 :: VLANEncap(0x5678);
 aggIP :: AggregateIPFlows();
 agg1, agg2, agg3, agg4, agg5 :: AggregateFirst();
 
-clientIn :: FromDevice(s1-eth0);
-backendIn :: FromDevice(s1-eth1);
-clientOut :: Queue(1024000) -> ToDevice(s1-eth0, BURST 51200);
-backendOut :: Queue(1024000) -> ToDevice(s1-eth1, BURST 51200);
+clientIn :: FromDevice(filter-eth1);
+backendIn :: FromDevice(filter-eth2);
+clientOut :: Queue(1024000) -> ToDevice(filter-eth1, BURST 51200);
+backendOut :: Queue(1024000) -> ToDevice(filter-eth2, BURST 51200);
 
 // s2Out :: Paint(2) -> backendOut;
 s2Out :: Unstrip(14) -> VLANEncap(0x1234) -> Print("Filter") -> backendOut;

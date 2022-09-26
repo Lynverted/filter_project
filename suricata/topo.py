@@ -40,7 +40,7 @@ class clickTopo(Topo):
         backend_router = self.addHost("r2", cls=LinuxRouter, ip="10.0.2.1/24")
         self.addLink(client_switch, client_router, params2={"ip": "10.0.0.1/24"})
         self.addLink(backend_switch, backend_router, params2={"ip": "10.0.2.1/24"})
-        self.addLink(client_router, suriC_switch, params1={"ip": "10.0.1.1/24"})
+        # self.addLink(client_router, suriC_switch, params1={"ip": "10.0.1.1/24"})
         self.addLink(backend_router, suriB_switch, params1={"ip": "10.0.1.4/24"})
 
         info("*** Adding {} Clients\n".format(CLIENT_COUNT))
@@ -56,7 +56,9 @@ class clickTopo(Topo):
             self.addLink(backends[b], backend_switch, addr1="00:00:00:00:02:0"+str(b+2))
 
         info("*** Adding Filter\n")
-        # stick filter here
+        filter = self.addSwitch("filter", dpid="505")#, ip="10.0.1.5/24")
+        self.addLink(client_router, filter, params1={"ip": "10.0.1.1/24"})
+        self.addLink(filter, suriC_switch)#, params1={"ip": "10.0.1.6/24"})
 
         info("*** Adding suricata\n")
         suri = self.addHost("s1", ip="10.0.1.2/24", defaultRoute='via 10.0.1.1')
@@ -99,11 +101,10 @@ def run():
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_type=0x800,nw_dst=10.0.1.3,priority=2,actions=group:1'")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_dst=00:00:00:00:01:03,priority=1,actions=group:1'")
 
-    # net.get("filter").cmd("click -u /var/run/click -f filter.cl")
+    net.get("filter").cmd("click -u /var/run/click -f filter.cl &")
 
     s1 = net.get("s1")
-    s1.cmd("click -u /var/run/click -f filter.cl &")
-    # s1.cmd("suricata -c config/suricata.yaml --af-packet &")
+    s1.cmd("suricata -c config/suricata.yaml --af-packet &")
     s1.cmd("ip route add 10.0.1.1 dev s1-eth0")
     s1.cmd("ip route add 10.0.1.4 dev s1-eth1")
     s1.cmd("ip route add 10.0.0.0/24 via 10.0.1.1")
