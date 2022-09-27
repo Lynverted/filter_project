@@ -93,6 +93,8 @@ def run():
     # FF rules for the switches
     ss1 = net.get("ss1")
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-group ss1 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
+    ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x1234,actions=output:3'")
+    ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x5678,actions=output:2'")
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_type=0x800,nw_dst=10.0.1.2,priority=2,actions=group:1'")
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_dst=00:00:00:00:01:02,priority=1,actions=group:1'")
 

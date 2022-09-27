@@ -2,10 +2,6 @@
  
 // Filter elements
 clone :: Tee();
-// PaintOut :: PaintSwitch();
-// paintClient :: Paint(1);
-// paintBackend :: Paint(2);
-// vlan1 :: VLANEncap(0x1234);
 vlan2 :: VLANEncap(0x5678);
 
 aggIP :: AggregateIPFlows();
@@ -16,15 +12,13 @@ backendIn :: FromDevice(filter-eth2);
 clientOut :: Queue(1024000) -> ToDevice(filter-eth1, BURST 51200);
 backendOut :: Queue(1024000) -> ToDevice(filter-eth2, BURST 51200);
 
-// s2Out :: Paint(2) -> backendOut;
-s2Out :: Unstrip(14) -> VLANEncap(0x1234) -> Print("Filter") -> backendOut;
+s2Out :: Unstrip(14) -> VLANEncap(0x1234) -> backendOut;
 
 // Split traffic between S1 and S2
 clientIn -> clone;
 
 // Client to backend - S1 pipeline
-// clone[0] -> paintClient -> backendOut;
-clone[0] -> vlan2 -> Print("Not") -> backendOut;
+clone[0] -> vlan2 -> backendOut;
 
 // Client to backend - S2 pipeline
 // Filter 5 packets through agg first elements to S2, discard rest
@@ -42,7 +36,7 @@ agg4[1] -> agg5;
 agg5[0] -> s2Out;
 agg5[1] -> Discard;
 
-// Backend to client - Separate ARP requests
+// Backend to client
 backendIn -> clientOut;
 
 
