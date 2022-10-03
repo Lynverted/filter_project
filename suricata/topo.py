@@ -6,7 +6,7 @@ from mininet.node import Node
 from mininet.log import setLogLevel, info
 import os
 
-CLIENT_COUNT = 2
+CLIENT_COUNT = 10
 BACKEND_COUNT = 1
 
 class LinuxRouter( Node ):
@@ -38,9 +38,8 @@ class clickTopo(Topo):
         info("*** Adding routers\n")
         client_router = self.addHost("r1", cls=LinuxRouter, ip="10.0.0.1/24")
         backend_router = self.addHost("r2", cls=LinuxRouter, ip="10.0.2.1/24")
-        self.addLink(client_switch, client_router, params2={"ip": "10.0.0.1/24"})
+        self.addLink(client_switch, client_router, params2={"ip": "10.0.0.1/24"}, addr2="00:00:00:00:00:99")
         self.addLink(backend_switch, backend_router, params2={"ip": "10.0.2.1/24"})
-        # self.addLink(client_router, suriC_switch, params1={"ip": "10.0.1.1/24"})
         self.addLink(backend_router, suriB_switch, params1={"ip": "10.0.1.4/24"})
 
         info("*** Adding {} Clients\n".format(CLIENT_COUNT))
@@ -56,19 +55,14 @@ class clickTopo(Topo):
             self.addLink(backends[b], backend_switch, addr1="00:00:00:00:02:0"+str(b+2))
 
         info("*** Adding Filter\n")
-        filter = self.addSwitch("filter", dpid="505")#, ip="10.0.1.5/24")
+        filter = self.addSwitch("filter", dpid="505")
         self.addLink(client_router, filter, params1={"ip": "10.0.1.1/24"})
-        self.addLink(filter, suriC_switch)#, params1={"ip": "10.0.1.6/24"})
+        self.addLink(filter, suriC_switch)
 
         info("*** Adding suricata\n")
         suri = self.addHost("s1", ip="10.0.1.2/24", defaultRoute='via 10.0.1.1')
         self.addLink(suri, suriC_switch, addr1="00:00:00:00:01:02")
         self.addLink(suri, suriB_switch, addr1="00:00:00:00:01:03", params1={"ip": "10.0.1.3/24"})
-        
-        # Different addresses
-        # suri2 = self.addHost("s2", ip="10.0.1.5/24", defaultRoute='via 10.0.1.1')
-        # self.addLink(suri2, suriC_switch, addr1="00:00:00:00:01:05")
-        # self.addLink(suri2, suriB_switch, addr1="00:00:00:00:01:06", params1={"ip": "10.0.1.6/24"})
 
         # Copy addresses
         suri2 = self.addHost("s2", ip="10.0.1.2/24", defaultRoute='via 10.0.1.1')
@@ -88,9 +82,16 @@ def run():
     for b in range(0, BACKEND_COUNT):
         backends.append(net.get('b' + str(b+1)))
         backends[b].cmd("sudo lighttpd -f ../backends/b"+str(b+1) + ".conf")
-        # backends[b].cmd("socat TCP4-LISTEN:56397,forever,retry OPEN:/dev/null &")
     
-    # FF rules for the switches
+    # Static forwarding for switches
+    for i in range(0, CLIENT_COUNT):
+        net.get("cs1").cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_dst=00:00:00:00:00:0" + str(i+2) + ",actions=output:"  + str(i+2) + "'")
+    for i in range(0, BACKEND_COUNT):
+        net.get("cs1").cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_dst=00:00:00:00:02:0" + str(i+2) + ",actions=output:1'")
+        net.get("bs1").cmd("ovs-ofctl -OOpenFlow13 add-flow bs1 'dl_dst=00:00:00:00:02:0" + str(i+2) + ",actions=output:"  + str(i+2) + "'")
+        net.get("filter").cmd("ovs-ofctl -OOpenFlow13 add-flow filter 'dl_dst=00:00:00:00:02:0" + str(i+2) + ",actions=output:"  + str(i+2) + "'")
+
+    # FF and redirect rules for the switches
     ss1 = net.get("ss1")
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-group ss1 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
     ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x1234,actions=output:3'")
@@ -105,6 +106,7 @@ def run():
 
     net.get("filter").cmd("click -u /var/run/click -f filter.cl &")
 
+    # Suricata forwarding
     s1 = net.get("s1")
     s1.cmd("suricata -c config/suricata.yaml --af-packet &")
     s1.cmd("ip route add 10.0.1.1 dev s1-eth0")
@@ -119,7 +121,10 @@ def run():
     s2.cmd("ip route add 10.0.0.0/24 via 10.0.1.1")
     s2.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
 
+    # Router directions
     net.get("r1").cmd("ip route add 10.0.2.0/24 via 10.0.1.2")
+    net.get("r1").cmd("arp -s 10.0.0.10 00:00:00:00:00:10")
+    net.get("r1").cmd("arp -s 10.0.0.11 00:00:00:00:00:11")
     net.get("r2").cmd("ip route add 10.0.0.0/24 via 10.0.1.3")
 
     info("*** Running CLI\n")
@@ -136,6 +141,36 @@ if __name__ == '__main__':
     setLogLevel('info')
     run()
 
+
+
+    # Generate body of 10 clients - mixed traffic
+
+    # info("*** Running traffic pcap gathering\n")
+    # net.get("r1").cmd("tcpdump -i r1-eth0 -s 0 -w traffic.pcap &")
+    # clients = []
+    # for c in range(0, 10):
+    #     clients.append(net.get('c' + str(c+1)))
+    # popens = {}
+    # log = open("output/fuck.txt", 'a')
+    # log.flush()
+    # for x in range(CLIENT_COUNT):
+    #     if x <= 5:
+    #         popens[x] = clients[x].popen("wrk -t 1 -c 2 -d 600 http://10.0.2.2/ &", stdout=log, shell=True, close_fds=True)
+    #     if x > 5:
+    #         popens[x] = clients[x].popen("gst-launch-1.0 -vvv playbin uri='http://10.0.2.2/bunny.mpd' video-sink=fakevideosink", shell=True)
+    # print("Running clients")
+    # for x in range(CLIENT_COUNT):
+    #      popens[x].communicate()
+
+
+
+
+
+
+
+
+
+    #  sudo ./id2t -i ../test.pcap -a DDoS ip.src=10.0.0.6 mac.src=00:00:00:00:00:06 inject.at-timestamp=1664392481
 
 # click -u /var/run/click -f lb-click/lb.click
 
