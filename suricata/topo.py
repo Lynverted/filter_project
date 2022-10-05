@@ -55,7 +55,7 @@ class clickTopo(Topo):
             self.addLink(backends[b], backend_switch, addr1="00:00:00:00:02:0"+str(b+2))
 
         info("*** Adding Filter\n")
-        filter = self.addSwitch("filter", dpid="505")
+        filter = self.addHost("filter", dpid="505")
         self.addLink(client_router, filter, params1={"ip": "10.0.1.1/24"})
         self.addLink(filter, suriC_switch)
 
@@ -94,8 +94,8 @@ def run():
     # FF and redirect rules for the switches
     ss1 = net.get("ss1")
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-group ss1 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
-    ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x1234,actions=output:3'")
-    ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x5678,actions=output:2'")
+    ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x1234,actions=strip_vlan,output:3'")
+    ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x5678,actions=strip_vlan,output:2'")
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_type=0x800,nw_dst=10.0.1.2,priority=2,actions=group:1'")
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_dst=00:00:00:00:01:02,priority=1,actions=group:1'")
 
@@ -105,6 +105,12 @@ def run():
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_dst=00:00:00:00:01:03,priority=1,actions=group:1'")
 
     net.get("filter").cmd("click -u /var/run/click -f filter.cl &")
+    net.get("filter").cmd("sudo ethtool --offload filter-eth0 tso off")
+    net.get("filter").cmd("sudo ethtool --offload filter-eth0 gso off")
+    net.get("filter").cmd("sudo ethtool --offload filter-eth0 gro off")
+    net.get("filter").cmd("sudo ethtool --offload filter-eth1 tso off")
+    net.get("filter").cmd("sudo ethtool --offload filter-eth1 tso off")
+    net.get("filter").cmd("sudo ethtool --offload filter-eth1 tso off")
 
     # Suricata forwarding
     s1 = net.get("s1")
@@ -115,7 +121,7 @@ def run():
     s1.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
 
     s2 = net.get("s2")
-    s2.cmd("suricata -c config/suricata2.yaml --af-packet &")
+    # s2.cmd("suricata -c config/suricata2.yaml --af-packet &")
     s2.cmd("ip route add 10.0.1.1 dev s2-eth0")
     s2.cmd("ip route add 10.0.1.4 dev s2-eth1")
     s2.cmd("ip route add 10.0.0.0/24 via 10.0.1.1")

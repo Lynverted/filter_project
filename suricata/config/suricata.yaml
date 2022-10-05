@@ -594,7 +594,7 @@ af-packet:
     copy-mode: ips
     copy-iface: s1-eth1
     buffer-size: 64535
-    use-mmap: no
+    use-mmap: yes
   - interface: s1-eth1
     threads: 1
     cluster-id: 95
@@ -603,7 +603,7 @@ af-packet:
     copy-mode: ips
     copy-iface: s1-eth0
     buffer-size: 64535
-    use-mmap: no
+    use-mmap: yes
 
   # - interface: s1-eth0
     # Number of receive threads. "auto" uses the number of cores
@@ -1071,7 +1071,7 @@ host-mode: auto
 # Runmode the engine should use. Please check --list-runmodes to get the available
 # runmodes for each packet acquisition method. Default depends on selected capture
 # method. 'workers' generally gives best performance.
-#runmode: autofp
+# runmode: single
 
 # Specifies the kind of flow load balancer used by the flow pinned autofp mode.
 #
@@ -1535,7 +1535,7 @@ threading:
   # thread being created. Regardless of the setting at a minimum 1 detect
   # thread will always be created.
   #
-  detect-thread-ratio: 1.0
+  detect-thread-ratio: 1
   #
   # By default, the per-thread stack size is left to its default setting. If
   # the default thread stack size is too small, use the following configuration
