@@ -686,6 +686,11 @@ af-packet:
 # Cross platform libpcap capture support
 pcap:
   - interface: s2-eth0
+    threads: 3
+    checksum-checks: no
+  - interface: s2-eth1
+    threads: 3
+    checksum-checks: no
     # On Linux, pcap will try to use mmap'ed capture and will use "buffer-size"
     # as total memory used by the ring. So set this to something bigger
     # than 1% of your bandwidth.
@@ -1071,7 +1076,7 @@ host-mode: auto
 # Runmode the engine should use. Please check --list-runmodes to get the available
 # runmodes for each packet acquisition method. Default depends on selected capture
 # method. 'workers' generally gives best performance.
-#runmode: autofp
+runmode: workers
 
 # Specifies the kind of flow load balancer used by the flow pinned autofp mode.
 #

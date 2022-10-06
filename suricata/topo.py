@@ -40,7 +40,7 @@ class clickTopo(Topo):
         backend_router = self.addHost("r2", cls=LinuxRouter, ip="10.0.2.1/24")
         self.addLink(client_switch, client_router, params2={"ip": "10.0.0.1/24"}, addr2="00:00:00:00:00:99")
         self.addLink(backend_switch, backend_router, params2={"ip": "10.0.2.1/24"})
-        self.addLink(backend_router, suriB_switch, params1={"ip": "10.0.1.4/24"})
+        self.addLink(backend_router, suriB_switch, params1={"ip": "10.0.1.4/24"}, addr1="00:00:00:00:01:90")
 
         info("*** Adding {} Clients\n".format(CLIENT_COUNT))
         clients = []
@@ -56,7 +56,7 @@ class clickTopo(Topo):
 
         info("*** Adding Filter\n")
         filter = self.addHost("filter", dpid="505")
-        self.addLink(client_router, filter, params1={"ip": "10.0.1.1/24"})
+        self.addLink(client_router, filter, params1={"ip": "10.0.1.1/24"}, addr1="00:00:00:00:01:99")
         self.addLink(filter, suriC_switch)
 
         info("*** Adding suricata\n")
@@ -97,12 +97,14 @@ def run():
     ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x1234,actions=strip_vlan,output:3'")
     ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x5678,actions=strip_vlan,output:2'")
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_type=0x800,nw_dst=10.0.1.2,priority=2,actions=group:1'")
+    # ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_type=0x806,nw_dst=10.0.1.2,priority=2,actions=group:1'")
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_dst=00:00:00:00:01:02,priority=1,actions=group:1'")
 
     ss2 = net.get("ss2")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-group ss2 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_type=0x800,nw_dst=10.0.1.3,priority=2,actions=group:1'")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_dst=00:00:00:00:01:03,priority=1,actions=group:1'")
+    ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_type=0x800,nw_dst=10.0.2.2,priority=1,actions=output:1'")
 
     net.get("filter").cmd("click -u /var/run/click -f filter.cl &")
     net.get("filter").cmd("sudo ethtool --offload filter-eth0 tso off")
@@ -114,24 +116,31 @@ def run():
 
     # Suricata forwarding
     s1 = net.get("s1")
-    s1.cmd("suricata -c config/suricata.yaml --af-packet &")
+    s1.cmd("suricata -c config/suricata.yaml --pcap &")
+    # s1.cmd("suricata -c config/suricata.yaml --af-packet &")
     s1.cmd("ip route add 10.0.1.1 dev s1-eth0")
     s1.cmd("ip route add 10.0.1.4 dev s1-eth1")
     s1.cmd("ip route add 10.0.0.0/24 via 10.0.1.1")
     s1.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
-
+    s1.cmd("arp -s 10.0.1.1 00:00:00:00:01:99")
+    s1.cmd("arp -s 10.0.1.4 00:00:00:00:01:90")
+    
     s2 = net.get("s2")
+    s2.cmd("suricata -c config/suricata2.yaml --pcap &")
     # s2.cmd("suricata -c config/suricata2.yaml --af-packet &")
     s2.cmd("ip route add 10.0.1.1 dev s2-eth0")
     s2.cmd("ip route add 10.0.1.4 dev s2-eth1")
     s2.cmd("ip route add 10.0.0.0/24 via 10.0.1.1")
     s2.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
+    s2.cmd("arp -s 10.0.1.1 00:00:00:00:01:99")
+    s2.cmd("arp -s 10.0.1.4 00:00:00:00:01:90")
 
     # Router directions
     net.get("r1").cmd("ip route add 10.0.2.0/24 via 10.0.1.2")
     net.get("r1").cmd("arp -s 10.0.0.10 00:00:00:00:00:10")
     net.get("r1").cmd("arp -s 10.0.0.11 00:00:00:00:00:11")
     net.get("r2").cmd("ip route add 10.0.0.0/24 via 10.0.1.3")
+    net.get("r2").cmd("arp -s 10.0.1.3 00:00:00:00:01:03")
 
     info("*** Running CLI\n")
     CLI(net)
