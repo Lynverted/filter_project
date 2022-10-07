@@ -96,9 +96,9 @@ def run():
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-group ss1 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
     ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x1234,actions=strip_vlan,output:3'")
     ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x5678,actions=strip_vlan,output:2'")
-    ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_type=0x800,nw_dst=10.0.1.2,priority=2,actions=group:1'")
+    ss1.cmd("ovs-ofctl -OOpenFlow10 add-flow ss1 'dl_type=0x800,nw_dst=10.0.1.2,priority=2,actions=strip_vlan,group:1'")
     # ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_type=0x806,nw_dst=10.0.1.2,priority=2,actions=group:1'")
-    ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_dst=00:00:00:00:01:02,priority=1,actions=group:1'")
+    ss1.cmd("ovs-ofctl -OOpenFlow10 add-flow ss1 'dl_dst=00:00:00:00:01:02,priority=1,actions=strip_vlan,group:1'")
 
     ss2 = net.get("ss2")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-group ss2 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
@@ -141,6 +141,9 @@ def run():
     net.get("r1").cmd("arp -s 10.0.0.11 00:00:00:00:00:11")
     net.get("r2").cmd("ip route add 10.0.0.0/24 via 10.0.1.3")
     net.get("r2").cmd("arp -s 10.0.1.3 00:00:00:00:01:03")
+
+    # Kill S2 backend port at start to prevent dupe traffic
+    net.get("ss2").cmd("sudo ip link set ss2-eth3 down")
 
     info("*** Running CLI\n")
     CLI(net)
