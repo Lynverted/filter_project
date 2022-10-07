@@ -2,7 +2,7 @@
  
 // Filter elements
 clone :: Tee();
-vlan2 :: VLANEncap(0x5678);
+// vlan2 :: VLANEncap(0x5678);
 
 aggIP :: AggregateIPFlows();
 agg1, agg2, agg3, agg4, agg5 :: AggregateFirst();
@@ -11,14 +11,15 @@ clientIn :: FromDevice(filter-eth0);
 backendIn :: FromDevice(filter-eth1);
 clientOut :: Queue(1024000) -> ToDevice(filter-eth0, BURST 51200);
 backendOut :: Queue(1024000) -> ToDevice(filter-eth1, BURST 51200);
+filterOut :: Queue(1024000) -> ToDevice(filter-eth2, BURST 51200);
 
-s2Out :: Unstrip(14) -> VLANEncap(0x1234) -> backendOut;
+s2Out :: Unstrip(14) -> filterOut;
 
 // Split traffic between S1 and S2
 clientIn -> clone;
 
 // Client to backend - S1 pipeline
-clone[0] -> vlan2 -> backendOut;
+clone[0] -> backendOut;
 
 // Client to backend - S2 pipeline
 // Filter 5 packets through agg first elements to S2, discard rest

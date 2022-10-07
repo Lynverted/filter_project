@@ -30,44 +30,48 @@ class clickTopo(Topo):
         self.clientswRules = []
 
         info("*** Adding Switches\n")
-        client_switch = self.addSwitch("cs1", dpid="101")
-        backend_switch = self.addSwitch("bs1", dpid="202")
-        suriC_switch = self.addSwitch("ss1", dpid="303")
-        suriB_switch = self.addSwitch("ss2", dpid="404")
+        cs1 = self.addSwitch("cs1", dpid="101")
+        bs1 = self.addSwitch("bs1", dpid="202")
+        ss1 = self.addSwitch("ss1", dpid="303")
+        ss2 = self.addSwitch("ss2", dpid="404")
 
         info("*** Adding routers\n")
-        client_router = self.addHost("r1", cls=LinuxRouter, ip="10.0.0.1/24")
-        backend_router = self.addHost("r2", cls=LinuxRouter, ip="10.0.2.1/24")
-        self.addLink(client_switch, client_router, params2={"ip": "10.0.0.1/24"}, addr2="00:00:00:00:00:99")
-        self.addLink(backend_switch, backend_router, params2={"ip": "10.0.2.1/24"})
-        self.addLink(backend_router, suriB_switch, params1={"ip": "10.0.1.4/24"}, addr1="00:00:00:00:01:90")
+        r1 = self.addHost("r1", cls=LinuxRouter, ip="10.0.0.1/24")
+        r2 = self.addHost("r2", cls=LinuxRouter, ip="10.0.2.1/24")
+        self.addLink(cs1, r1, params2={"ip": "10.0.0.1/24"}, addr2="00:00:00:00:00:99")
+        self.addLink(bs1, r2, params2={"ip": "10.0.2.1/24"})
+        self.addLink(r2, ss2, params1={"ip": "10.0.1.4/24"}, addr1="00:00:00:00:01:90")
 
         info("*** Adding {} Clients\n".format(CLIENT_COUNT))
         clients = []
         for c in range(0, CLIENT_COUNT):
             clients.append(self.addHost("c"+str(c+1), ip="10.0.0.{}/24".format(str(c+2)), defaultRoute='via 10.0.0.1'))
-            self.addLink(clients[c], client_switch, addr1="00:00:00:00:00:0"+str(c+2))
+            self.addLink(clients[c], cs1, addr1="00:00:00:00:00:0"+str(c+2))
 
         backends = []
         info("*** Adding {} Backends\n".format(BACKEND_COUNT))
         for b in range(0, BACKEND_COUNT):
             backends.append(self.addHost("b"+str(b+1), ip="10.0.2.{}/24".format(str(b+2)), defaultRoute='via 10.0.2.1'))
-            self.addLink(backends[b], backend_switch, addr1="00:00:00:00:02:0"+str(b+2))
+            self.addLink(backends[b], bs1, addr1="00:00:00:00:02:0"+str(b+2))
 
         info("*** Adding Filter\n")
         filter = self.addHost("filter", dpid="505")
-        self.addLink(client_router, filter, params1={"ip": "10.0.1.1/24"}, addr1="00:00:00:00:01:99")
-        self.addLink(filter, suriC_switch)
+        self.addLink(r1, ss1, params1={"ip": "10.0.1.1/24"}, addr1="00:00:00:00:01:99")
+        self.addLink(ss1, filter)
+        # self.addLink(r1, filter, params1={"ip": "10.0.1.1/24"}, addr1="00:00:00:00:01:99")
+        # self.addLink(filter, ss1)
 
         info("*** Adding suricata\n")
         suri = self.addHost("s1", ip="10.0.1.2/24", defaultRoute='via 10.0.1.1')
-        self.addLink(suri, suriC_switch, addr1="00:00:00:00:01:02")
-        self.addLink(suri, suriB_switch, addr1="00:00:00:00:01:03", params1={"ip": "10.0.1.3/24"})
+        self.addLink(filter, suri, addr2="00:00:00:00:01:02")
+        self.addLink(suri, ss2, addr1="00:00:00:00:01:03", params1={"ip": "10.0.1.3/24"})
+        # self.addLink(suri, ss1, addr1="00:00:00:00:01:02")
 
         # Copy addresses
         suri2 = self.addHost("s2", ip="10.0.1.2/24", defaultRoute='via 10.0.1.1')
-        self.addLink(suri2, suriC_switch, addr1="00:00:00:00:01:02")
-        self.addLink(suri2, suriB_switch, addr1="00:00:00:00:01:03", params1={"ip": "10.0.1.3/24"})
+        self.addLink(suri2, ss1, addr1="00:00:00:00:01:02")
+        self.addLink(suri2, ss2, addr1="00:00:00:00:01:03", params1={"ip": "10.0.1.3/24"})
+        self.addLink(filter, suri2)
 
 # Main method
 def run():
@@ -94,11 +98,11 @@ def run():
     # FF and redirect rules for the switches
     ss1 = net.get("ss1")
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-group ss1 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
-    ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x1234,actions=strip_vlan,output:3'")
-    ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x5678,actions=strip_vlan,output:2'")
-    ss1.cmd("ovs-ofctl -OOpenFlow10 add-flow ss1 'dl_type=0x800,nw_dst=10.0.1.2,priority=2,actions=strip_vlan,group:1'")
+    # ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x1234,actions=strip_vlan,output:3'")
+    # ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x5678,actions=strip_vlan,output:2'")
+    ss1.cmd("ovs-ofctl -OOpenFlow10 add-flow ss1 'dl_type=0x800,nw_dst=10.0.1.2,priority=2,actions=group:1'")
     # ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_type=0x806,nw_dst=10.0.1.2,priority=2,actions=group:1'")
-    ss1.cmd("ovs-ofctl -OOpenFlow10 add-flow ss1 'dl_dst=00:00:00:00:01:02,priority=1,actions=strip_vlan,group:1'")
+    ss1.cmd("ovs-ofctl -OOpenFlow10 add-flow ss1 'dl_dst=00:00:00:00:01:02,priority=1,actions=group:1'")
 
     ss2 = net.get("ss2")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-group ss2 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
@@ -142,7 +146,8 @@ def run():
     net.get("r2").cmd("ip route add 10.0.0.0/24 via 10.0.1.3")
     net.get("r2").cmd("arp -s 10.0.1.3 00:00:00:00:01:03")
 
-    # Kill S2 backend port at start to prevent dupe traffic
+    # Kill S2 ports at start to prevent dupe traffic
+    net.get("ss2").cmd("sudo ip link set ss1-eth3 down")
     net.get("ss2").cmd("sudo ip link set ss2-eth3 down")
 
     info("*** Running CLI\n")

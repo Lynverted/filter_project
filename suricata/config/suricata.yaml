@@ -688,10 +688,10 @@ af-packet:
 # Cross platform libpcap capture support
 pcap:
   - interface: s1-eth0
-    threads: 3
+    threads: 2
     checksum-checks: no
   - interface: s1-eth1
-    threads: 3
+    threads: 2
     checksum-checks: no
     # On Linux, pcap will try to use mmap'ed capture and will use "buffer-size"
     # as total memory used by the ring. So set this to something bigger
