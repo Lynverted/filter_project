@@ -17,6 +17,7 @@ class LinuxRouter( Node ):
         super( LinuxRouter, self).config( **params )
         # Enable forwarding on the router
         self.cmd( 'sysctl net.ipv4.ip_forward=1' )
+        self.cmd( 'echo 0 > /proc/sys/net/ipv4/conf/all/rp_filter')
 
     def terminate( self ):
         self.cmd( 'sysctl net.ipv4.ip_forward=0' )
@@ -39,7 +40,7 @@ class clickTopo(Topo):
         r1 = self.addHost("r1", cls=LinuxRouter, ip="10.0.0.1/24")
         r2 = self.addHost("r2", cls=LinuxRouter, ip="10.0.2.1/24")
         self.addLink(cs1, r1, params2={"ip": "10.0.0.1/24"}, addr2="00:00:00:00:00:99")
-        self.addLink(bs1, r2, params2={"ip": "10.0.2.1/24"})
+        self.addLink(bs1, r2, params2={"ip": "10.0.2.1/24"}, addr2="00:00:00:00:02:90")
         self.addLink(r2, ss2, params1={"ip": "10.0.1.4/24"}, addr1="00:00:00:00:01:90")
 
         info("*** Adding {} Clients\n".format(CLIENT_COUNT))
@@ -65,7 +66,6 @@ class clickTopo(Topo):
         suri = self.addHost("s1", ip="10.0.1.2/24", defaultRoute='via 10.0.1.1')
         self.addLink(filter, suri, addr2="00:00:00:00:01:02")
         self.addLink(suri, ss2, addr1="00:00:00:00:01:03", params1={"ip": "10.0.1.3/24"})
-        # self.addLink(suri, ss1, addr1="00:00:00:00:01:02")
 
         # Copy addresses
         suri2 = self.addHost("s2", ip="10.0.1.2/24", defaultRoute='via 10.0.1.1')
@@ -90,36 +90,41 @@ def run():
     # Static forwarding for switches
     for i in range(0, CLIENT_COUNT):
         net.get("cs1").cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_dst=00:00:00:00:00:0" + str(i+2) + ",actions=output:"  + str(i+2) + "'")
+        net.get("bs1").cmd("ovs-ofctl -OOpenFlow13 add-flow bs1 'dl_dst=00:00:00:00:00:0" + str(i+2) + ",actions=output:1'")
     for i in range(0, BACKEND_COUNT):
         net.get("cs1").cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_dst=00:00:00:00:02:0" + str(i+2) + ",actions=output:1'")
         net.get("bs1").cmd("ovs-ofctl -OOpenFlow13 add-flow bs1 'dl_dst=00:00:00:00:02:0" + str(i+2) + ",actions=output:"  + str(i+2) + "'")
-        net.get("filter").cmd("ovs-ofctl -OOpenFlow13 add-flow filter 'dl_dst=00:00:00:00:02:0" + str(i+2) + ",actions=output:"  + str(i+2) + "'")
+    # net.get("cs1").cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_dst=00:00:00:00:00:99,actions=output:1'")
+    net.get("cs1").cmd("ovs-ofctl -OOpenFlow13 add-flow cs1 'dl_type=0x800,nw_dst=10.0.2.2,actions=output:1'")
+    net.get("bs1").cmd("ovs-ofctl -OOpenFlow13 add-flow bs1 'dl_dst=00:00:00:00:02:90,actions=output:1'")
 
     # FF and redirect rules for the switches
     ss1 = net.get("ss1")
     ss1.cmd("ovs-ofctl -OOpenFlow13 add-group ss1 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
-    # ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x1234,actions=strip_vlan,output:3'")
-    # ss1.cmd("sudo ovs-ofctl -OOpenFlow13 add-flow ss1 'vlan_vid=0x5678,actions=strip_vlan,output:2'")
     ss1.cmd("ovs-ofctl -OOpenFlow10 add-flow ss1 'dl_type=0x800,nw_dst=10.0.1.2,priority=2,actions=group:1'")
-    # ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_type=0x806,nw_dst=10.0.1.2,priority=2,actions=group:1'")
     ss1.cmd("ovs-ofctl -OOpenFlow10 add-flow ss1 'dl_dst=00:00:00:00:01:02,priority=1,actions=group:1'")
+    ss1.cmd("ovs-ofctl -OOpenFlow13 add-flow ss1 'dl_dst=00:00:00:00:01:99,priority=1,actions=output:1'")
 
     ss2 = net.get("ss2")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-group ss2 'group_id=1,type=ff,bucket=watch_port:2,output:2,bucket=watch_port:3,output:3'")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_type=0x800,nw_dst=10.0.1.3,priority=2,actions=group:1'")
     ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_dst=00:00:00:00:01:03,priority=1,actions=group:1'")
-    ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_type=0x800,nw_dst=10.0.2.2,priority=1,actions=output:1'")
+    ss2.cmd("ovs-ofctl -OOpenFlow13 add-flow ss2 'dl_dst=00:00:00:00:01:90,priority=1,actions=output:1'")
 
+    # Filter 
     net.get("filter").cmd("click -u /var/run/click -f filter.cl &")
-    net.get("filter").cmd("sudo ethtool --offload filter-eth0 tso off")
-    net.get("filter").cmd("sudo ethtool --offload filter-eth0 gso off")
-    net.get("filter").cmd("sudo ethtool --offload filter-eth0 gro off")
-    net.get("filter").cmd("sudo ethtool --offload filter-eth1 tso off")
-    net.get("filter").cmd("sudo ethtool --offload filter-eth1 tso off")
-    net.get("filter").cmd("sudo ethtool --offload filter-eth1 tso off")
+    flag = ["tso", "gso", "gro"]
+    for x in range(0, 6):
+        if(x % 2): 
+            net.get('filter').cmd("sudo ethtool --offload filter-eth" + str(x % 2) + " " + flag[x/2] + " off")
+            net.get('filter').cmd("sudo ethtool --offload filter-eth" + str((x % 2)+1) + " " + flag[x/2] + " off")
+        else:
+            net.get('filter').cmd("sudo ethtool --offload filter-eth" + str(x % 2) + " " + flag[x/2] + " off")
+
 
     # Suricata forwarding
     s1 = net.get("s1")
+    s1.cmd("sysctl net.ipv4.ip_forward=1")
     s1.cmd("suricata -c config/suricata.yaml --pcap &")
     # s1.cmd("suricata -c config/suricata.yaml --af-packet &")
     s1.cmd("ip route add 10.0.1.1 dev s1-eth0")
@@ -128,6 +133,10 @@ def run():
     s1.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
     s1.cmd("arp -s 10.0.1.1 00:00:00:00:01:99")
     s1.cmd("arp -s 10.0.1.4 00:00:00:00:01:90")
+    s1.cmd("brctl addbr bridge1")
+    s1.cmd("brctl addif bridge1 s1-eth0")
+    s1.cmd("brctl addif bridge1 s1-eth1")
+    s1.cmd("ifconfig bridge1 up")
     
     s2 = net.get("s2")
     s2.cmd("suricata -c config/suricata2.yaml --pcap &")
@@ -138,15 +147,24 @@ def run():
     s2.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
     s2.cmd("arp -s 10.0.1.1 00:00:00:00:01:99")
     s2.cmd("arp -s 10.0.1.4 00:00:00:00:01:90")
+    s2.cmd("brctl addbr bridge2")
+    s2.cmd("brctl addif bridge2 s2-eth0")
+    s2.cmd("brctl addif bridge2 s2-eth1")
+    s2.cmd("ifconfig bridge2 up")
 
     # Router directions
-    net.get("r1").cmd("ip route add 10.0.2.0/24 via 10.0.1.2")
-    net.get("r1").cmd("arp -s 10.0.0.10 00:00:00:00:00:10")
-    net.get("r1").cmd("arp -s 10.0.0.11 00:00:00:00:00:11")
-    net.get("r2").cmd("ip route add 10.0.0.0/24 via 10.0.1.3")
-    net.get("r2").cmd("arp -s 10.0.1.3 00:00:00:00:01:03")
+    r1 = net.get("r1")
+    r2 = net.get("r2")
+    r1.cmd("arp -s 10.0.1.4 00:00:00:00:01:90")
+    r1.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
+    r1.cmd("ip route add default via 10.0.1.4")
+    r1.cmd("arp -s 10.0.0.10 00:00:00:00:00:10")
+    r1.cmd("arp -s 10.0.0.11 00:00:00:00:00:11")
+    r2.cmd("arp -s 10.0.1.1 00:00:00:00:01:99")
+    r2.cmd("ip route add default via 10.0.1.1")
+    r2.cmd("ip route add 10.0.0.0/24 via 10.0.1.1")
 
-    # Kill S2 ports at start to prevent dupe traffic
+    # start with S2 ports down to prevent dupe traffic
     net.get("ss2").cmd("sudo ip link set ss1-eth3 down")
     net.get("ss2").cmd("sudo ip link set ss2-eth3 down")
 
@@ -167,7 +185,6 @@ if __name__ == '__main__':
 
 
     # Generate body of 10 clients - mixed traffic
-
     # info("*** Running traffic pcap gathering\n")
     # net.get("r1").cmd("tcpdump -i r1-eth0 -s 0 -w traffic.pcap &")
     # clients = []
@@ -186,12 +203,7 @@ if __name__ == '__main__':
     #      popens[x].communicate()
 
 
-
-
-
-
-
-
+    # c1 tcpreplay-edit --enet-dmac=00:00:00:00:00:99 -i c1-eth0 --mbps 100 traffic.pcap
 
     #  sudo ./id2t -i ../test.pcap -a DDoS ip.src=10.0.0.6 mac.src=00:00:00:00:00:06 inject.at-timestamp=1664392481
 

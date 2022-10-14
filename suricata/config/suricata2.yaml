@@ -1069,7 +1069,7 @@ coredump:
 # If set to auto, the variable is internally switched to 'router' in IPS mode
 # and 'sniffer-only' in IDS mode.
 # This feature is currently only used by the reject* keywords.
-host-mode: auto
+host-mode: router
 
 # Number of packets preallocated per thread. The default is 1024. A higher number 
 # will make sure each CPU will be more easily kept busy, but may negatively 
@@ -1079,7 +1079,7 @@ host-mode: auto
 # Runmode the engine should use. Please check --list-runmodes to get the available
 # runmodes for each packet acquisition method. Default depends on selected capture
 # method. 'workers' generally gives best performance.
-runmode: workers
+runmode: autofp
 
 # Specifies the kind of flow load balancer used by the flow pinned autofp mode.
 #
@@ -1916,10 +1916,29 @@ napatech:
 ## Configure Suricata to load Suricata-Update managed rules.
 ##
 
-default-rule-path: /var/lib/suricata/rules
+default-rule-path: /home/lyn/filter/suricata/config/rules
 
 rule-files:
-  - suricata.rules
+  # - suricata.rules
+  # - app-layer-events.rules
+  - decoder-events.rules
+  - dhcp-events.rules
+  # - dnp3-events.rules
+  - dns-events.rules
+  - files.rules
+  # - http2-events.rules
+  - http-events.rules
+  - ipsec-events.rules
+  - kerberos-events.rules
+  # - modbus-events.rules
+  - mqtt-events.rules
+  - nfs-events.rules
+  - ntp-events.rules
+  - smb-events.rules
+  - smtp-events.rules
+  - ssh-events.rules
+  - stream-events.rules
+  - tls-events.rules
 
 ##
 ## Auxiliary configuration files.
