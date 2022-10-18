@@ -137,6 +137,7 @@ def run():
     s1.cmd("brctl addif bridge1 s1-eth0")
     s1.cmd("brctl addif bridge1 s1-eth1")
     s1.cmd("ifconfig bridge1 up")
+
     
     s2 = net.get("s2")
     s2.cmd("suricata -c config/suricata2.yaml --pcap &")
@@ -151,6 +152,13 @@ def run():
     s2.cmd("brctl addif bridge2 s2-eth0")
     s2.cmd("brctl addif bridge2 s2-eth1")
     s2.cmd("ifconfig bridge2 up")
+
+    # Off loading test
+    s1.cmd("sudo ethtool --offload s1-eth0 gro off gso off tso off")
+    s1.cmd("sudo ethtool --offload s1-eth1 gro off gso off tso off")
+    s2.cmd("sudo ethtool --offload s2-eth0 gro off gso off tso off")
+    s2.cmd("sudo ethtool --offload s2-eth1 gro off gso off tso off")
+    s2.cmd("sudo ethtool --offload s2-eth2 gro off gso off tso off")
 
     # Router directions
     r1 = net.get("r1")

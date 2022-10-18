@@ -15,10 +15,10 @@
 vars:
   # more specific is better for alert accuracy and performance
   address-groups:
-    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
+    # HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
     #HOME_NET: "[192.168.0.0/16]"
-    #HOME_NET: "[10.0.0.0/8]"
-    #HOME_NET: "[172.16.0.0/12]"
+    HOME_NET: "[10.0.1.0/24]"
+    HOME_NET: "[10.0.2.0/24]"
     #HOME_NET: "any"
 
     EXTERNAL_NET: "!$HOME_NET"
@@ -604,6 +604,14 @@ af-packet:
     copy-iface: s2-eth0
     buffer-size: 64535
     use-mmap: no
+  - interface: s2-eth2
+    threads: 1
+    cluster-id: 96
+    defrag: yes
+    cluster-type: cluster_flow
+    copy-mode: ips
+    use-mmap: no
+
 
   # - interface: s1-eth0
     # Number of receive threads. "auto" uses the number of cores
@@ -1939,6 +1947,20 @@ rule-files:
   - ssh-events.rules
   - stream-events.rules
   - tls-events.rules
+  - emerging-dos.rules
+  - drop.rules
+  - emerging-dns.rules
+  - emerging-malware.rules
+  - emerging-scan.rules
+  - emerging-p2p.rules
+  - emerging-phishing.rules
+  - emerging-inappropriate.rules
+  - 3coresec.rules
+  - compromised.rules
+  - emerging-attack_response.rules
+  - emerging-sql.rules
+  - emerging-current_events.rules
+  - emerging-exploit_kit.rules
 
 ##
 ## Auxiliary configuration files.

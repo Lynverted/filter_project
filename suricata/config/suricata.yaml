@@ -18,7 +18,7 @@ vars:
     # HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
     #HOME_NET: "[192.168.0.0/16]"
     HOME_NET: "[10.0.1.0/24]"
-    #HOME_NET: "[172.16.0.0/12]"
+    HOME_NET: "[10.0.2.0/24]"
     #HOME_NET: "any"
 
     EXTERNAL_NET: "!$HOME_NET"
@@ -1940,6 +1940,19 @@ rule-files:
   - stream-events.rules
   - tls-events.rules
   - emerging-dos.rules
+  - drop.rules
+  - emerging-dns.rules
+  - emerging-malware.rules
+  - emerging-scan.rules
+  - emerging-p2p.rules
+  - emerging-phishing.rules
+  - emerging-inappropriate.rules
+  - 3coresec.rules
+  - compromised.rules
+  - emerging-attack_response.rules
+  - emerging-sql.rules
+  - emerging-current_events.rules
+  - emerging-exploit_kit.rules
 
 ##
 ## Auxiliary configuration files.
