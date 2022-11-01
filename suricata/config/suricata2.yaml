@@ -16,21 +16,25 @@ vars:
   # more specific is better for alert accuracy and performance
   address-groups:
     # HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
-    #HOME_NET: "[192.168.0.0/16]"
-    HOME_NET: "[10.0.1.0/24]"
-    HOME_NET: "[10.0.2.0/24]"
+
+    # Local generated attacks
+    # HOME_NET: "[10.0.1.0/24]"
+    # HOME_NET: "[10.0.2.0/24]"
+
+    # Dataset attacks 2017
+    HOME_NET: "[192.168.10.0/24,205.174.165.66,205.174.165.80]"
     #HOME_NET: "any"
 
     EXTERNAL_NET: "!$HOME_NET"
     #EXTERNAL_NET: "any"
 
-    HTTP_SERVERS: "$HOME_NET"
+    HTTP_SERVERS: "205.174.165.68"
     SMTP_SERVERS: "$HOME_NET"
     SQL_SERVERS: "$HOME_NET"
-    DNS_SERVERS: "$HOME_NET"
+    DNS_SERVERS: "192.168.10.3"
     TELNET_SERVERS: "$HOME_NET"
     AIM_SERVERS: "$EXTERNAL_NET"
-    DC_SERVERS: "$HOME_NET"
+    DC_SERVERS: "192.168.10.3"
     DNP3_SERVER: "$HOME_NET"
     DNP3_CLIENT: "$HOME_NET"
     MODBUS_CLIENT: "$HOME_NET"
@@ -1175,7 +1179,7 @@ host-os-policy:
   bsd: []
   bsd-right: []
   old-linux: []
-  linux: []
+  linux: [10.0.1.0/24]
   old-solaris: []
   solaris: []
   hpux10: []
@@ -1551,7 +1555,7 @@ threading:
   # thread being created. Regardless of the setting at a minimum 1 detect
   # thread will always be created.
   #
-  detect-thread-ratio: 1.0
+  detect-thread-ratio: 1
   #
   # By default, the per-thread stack size is left to its default setting. If
   # the default thread stack size is too small, use the following configuration
@@ -1929,13 +1933,13 @@ default-rule-path: /home/lyn/filter/suricata/config/rules
 rule-files:
   # - suricata.rules
   # - app-layer-events.rules
-  - decoder-events.rules
+  # - decoder-events.rules
   - dhcp-events.rules
   # - dnp3-events.rules
   - dns-events.rules
   - files.rules
   # - http2-events.rules
-  - http-events.rules
+  # - http-events.rules
   - ipsec-events.rules
   - kerberos-events.rules
   # - modbus-events.rules
@@ -1945,8 +1949,8 @@ rule-files:
   - smb-events.rules
   - smtp-events.rules
   - ssh-events.rules
-  - stream-events.rules
-  - tls-events.rules
+  # - stream-events.rules
+  # - tls-events.rules
   - emerging-dos.rules
   - drop.rules
   - emerging-dns.rules
@@ -1961,6 +1965,13 @@ rule-files:
   - emerging-sql.rules
   - emerging-current_events.rules
   - emerging-exploit_kit.rules
+  - emerging-web_server.rules
+  - emerging-web_client.rules
+  - emerging-deleted.rules
+  - emerging-exploit.rules
+  - emerging-policy.rules
+  - emerging-activex.rules
+  - emerging-ftp.rules
 
 ##
 ## Auxiliary configuration files.

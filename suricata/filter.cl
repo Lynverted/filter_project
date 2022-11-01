@@ -4,8 +4,8 @@
 clone :: Tee();
 // vlan2 :: VLANEncap(0x5678);
 
-aggIP :: AggregateIPFlows();
-agg1, agg2, agg3, agg4, agg5 :: AggregateFirst();
+aggIP :: AggregateIPFlows(TCP_TIMEOUT 60);
+agg1, agg2, agg3, agg4, agg5, agg6, agg7, agg8, agg9, agg10 :: AggregateFirst();
 
 clientIn :: FromDevice(filter-eth0);
 backendIn :: FromDevice(filter-eth1);
@@ -35,7 +35,18 @@ agg3[1] -> agg4;
 agg4[0] -> s2Out;
 agg4[1] -> agg5;
 agg5[0] -> s2Out;
-agg5[1] -> Discard;
+// agg5[1] -> Discard;     # original breakpoint
+agg5[1] -> agg6;
+agg6[0] -> s2Out;
+agg6[1] -> agg7;
+agg7[0] -> s2Out;
+agg7[1] -> agg8;
+agg8[0] -> s2Out;
+agg8[1] -> agg9;
+agg9[0] -> s2Out;
+agg9[1] -> agg10;
+agg10[0] -> s2Out;
+agg10[1] -> Discard;
 
 // Backend to client
 backendIn -> clientOut;
@@ -66,3 +77,4 @@ backendIn -> clientOut;
 // Main in - back end:
 //     send directly to return out
 
+// IPPrint(1, AGGREGATE true)

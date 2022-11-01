@@ -85,7 +85,7 @@ def run():
     backends = []
     for b in range(0, BACKEND_COUNT):
         backends.append(net.get('b' + str(b+1)))
-        backends[b].cmd("sudo lighttpd -f ../backends/b"+str(b+1) + ".conf")
+        # backends[b].cmd("sudo lighttpd -f ../backends/b"+str(b+1) + ".conf")
     
     # Static forwarding for switches
     for i in range(0, CLIENT_COUNT):
@@ -115,6 +115,7 @@ def run():
 
     # Filter 
     net.get("filter").cmd("click -u /var/run/click -f filter.cl &")
+    # net.get("filter").cmd("click -u /var/run/click -f filter2.cl &")
     flag = ["tso", "gso", "gro"]
     for x in range(0, 6):
         if(x % 2): 
@@ -126,7 +127,7 @@ def run():
 
     # Suricata forwarding
     s1 = net.get("s1")
-    s1.cmd("sysctl net.ipv4.ip_forward=1")
+    # s1.cmd("sysctl net.ipv4.ip_forward=1")
     s1.cmd("suricata -c config/suricata.yaml --pcap &")
     # s1.cmd("suricata -c config/suricata.yaml --af-packet &")
     s1.cmd("ip route add 10.0.1.1 dev s1-eth0")
@@ -135,13 +136,14 @@ def run():
     s1.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
     s1.cmd("arp -s 10.0.1.1 00:00:00:00:01:99")
     s1.cmd("arp -s 10.0.1.4 00:00:00:00:01:90")
-    s1.cmd("brctl addbr bridge1")
-    s1.cmd("brctl addif bridge1 s1-eth0")
-    s1.cmd("brctl addif bridge1 s1-eth1")
-    s1.cmd("ifconfig bridge1 up")
+    # s1.cmd("brctl addbr bridge1")
+    # s1.cmd("brctl addif bridge1 s1-eth0")
+    # s1.cmd("brctl addif bridge1 s1-eth1")
+    # s1.cmd("ifconfig bridge1 up")
 
     
     s2 = net.get("s2")
+    # s2.cmd("sysctl net.ipv4.ip_forward=1")
     s2.cmd("suricata -c config/suricata2.yaml --pcap &")
     # s2.cmd("suricata -c config/suricata2.yaml --af-packet &")
     s2.cmd("ip route add 10.0.1.1 dev s2-eth0")
@@ -150,10 +152,10 @@ def run():
     s2.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
     s2.cmd("arp -s 10.0.1.1 00:00:00:00:01:99")
     s2.cmd("arp -s 10.0.1.4 00:00:00:00:01:90")
-    s2.cmd("brctl addbr bridge2")
-    s2.cmd("brctl addif bridge2 s2-eth0")
-    s2.cmd("brctl addif bridge2 s2-eth1")
-    s2.cmd("ifconfig bridge2 up")
+    # s2.cmd("brctl addbr bridge2")
+    # s2.cmd("brctl addif bridge2 s2-eth0")
+    # s2.cmd("brctl addif bridge2 s2-eth1")
+    # s2.cmd("ifconfig bridge2 up")
 
     # Off loading test
     s1.cmd("sudo ethtool --offload s1-eth0 gro off gso off tso off")
@@ -165,11 +167,14 @@ def run():
     # Router directions
     r1 = net.get("r1")
     r2 = net.get("r2")
+    r1.cmd("sudo ethtool --offload r1-eth1 gro off gso off tso off")
+    r1.cmd("sudo ethtool --offload r1-eth2 gro off gso off tso off")
     r1.cmd("arp -s 10.0.1.4 00:00:00:00:01:90")
     r1.cmd("ip route add 10.0.2.0/24 via 10.0.1.4")
     r1.cmd("ip route add default via 10.0.1.4")
     r1.cmd("arp -s 10.0.0.10 00:00:00:00:00:10")
     r1.cmd("arp -s 10.0.0.11 00:00:00:00:00:11")
+
     r2.cmd("arp -s 10.0.1.1 00:00:00:00:01:99")
     r2.cmd("ip route add default via 10.0.1.1")
     r2.cmd("ip route add 10.0.0.0/24 via 10.0.1.1")
