@@ -26,13 +26,13 @@ vars:
     # HOME_NET: "[205.174.165.80]" # firewall
     # HOME_NET: "[205.174.165.66]"
     # HOME_NET: "[205.174.165.68]"
-    HOME_NET: "[192.168.10.0/24,205.174.165.66,205.174.165.80]"
+    HOME_NET: "[192.168.10.0/24,205.174.165.66,205.174.165.80,172.16.0.1]"
     #HOME_NET: "any"
 
     EXTERNAL_NET: "!$HOME_NET"
     #EXTERNAL_NET: "any"
 
-    HTTP_SERVERS: "205.174.165.68"
+    HTTP_SERVERS: "205.174.165.68,192.168.10.50"
     SMTP_SERVERS: "$HOME_NET"
     SQL_SERVERS: "$HOME_NET"
     DNS_SERVERS: "192.168.10.3"
@@ -595,21 +595,21 @@ logging:
 # Linux high speed capture support
 af-packet:
   - interface: s1-eth0
-    threads: 1
+    threads: 2
     defrag: yes
     cluster-type: cluster_flow
     cluster-id: 96
-    copy-mode: ips
+    copy-mode: ids
     copy-iface: s1-eth1
     buffer-size: 64535
     use-mmap: no
     mmap-locked: no
   - interface: s1-eth1
-    threads: 1
+    threads: 2
     cluster-id: 95
     defrag: yes
     cluster-type: cluster_flow
-    copy-mode: ips
+    copy-mode: ids
     copy-iface: s1-eth0
     buffer-size: 64535
     use-mmap: no
@@ -696,15 +696,15 @@ af-packet:
 # Cross platform libpcap capture support
 pcap:
   - interface: s1-eth0
-    threads: 2
+    threads: 6
     checksum-checks: no
   - interface: s1-eth1
-    threads: 2
+    threads: 6
     checksum-checks: no
     # On Linux, pcap will try to use mmap'ed capture and will use "buffer-size"
     # as total memory used by the ring. So set this to something bigger
     # than 1% of your bandwidth.
-    #buffer-size: 16777216
+    buffer-size: 16777216
     #bpf-filter: "tcp and port 25"
     # Choose checksum verification mode for the interface. At the moment
     # of the capture, some packets may have an invalid checksum due to
@@ -725,7 +725,7 @@ pcap:
     #promisc: no
     # set snaplen, if not set it defaults to MTU if MTU can be known
     # via ioctl call and to full capture if not.
-    #snaplen: 1518
+    snaplen: 1524
   # Put default values here
   - interface: default
     #checksum-checks: auto
@@ -1442,7 +1442,7 @@ decoder:
 # If the argument specified is 0, the engine uses an internally defined
 # default limit.  When a value is not specified, there are no limits on the recursion.
 detect:
-  profile: medium
+  profile: high
   custom-values:
     toclient-groups: 3
     toserver-groups: 25
@@ -1937,7 +1937,7 @@ rule-files:
   # - http2-events.rules
   # - http-events.rules
   - ipsec-events.rules
-  - kerberos-events.rules
+  # - kerberos-events.rules
   # - modbus-events.rules
   - mqtt-events.rules
   - nfs-events.rules
@@ -1968,12 +1968,22 @@ rule-files:
   - emerging-policy.rules
   - emerging-activex.rules
   - emerging-ftp.rules
-
+  - botcc.rules
+  - botcc.portgrouped.rules
+  - emerging-netbios.rules
+  - emerging-shellcode.rules
+  - emerging-ja3.rules
+  - emerging-worm.rules
+  - emerging-smtp.rules
+  - emerging-user_agents.rules
+  - emerging-web_specific_apps.rules
+  - emerging-mobile_malware.rules
+  
 ##
 ## Auxiliary configuration files.
 ##
 
-classification-file: /etc/suricata/classification.config
+classification-file: /home/lyn/filter/suricata/config/rules/classification.config
 reference-config-file: /etc/suricata/reference.config
 # threshold-file: /etc/suricata/threshold.config
 

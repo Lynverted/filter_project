@@ -591,29 +591,29 @@ logging:
 # Linux high speed capture support
 af-packet:
   - interface: s2-eth0
-    threads: 1
+    threads: 2
     defrag: yes
     cluster-type: cluster_flow
     cluster-id: 98
-    copy-mode: ips
+    copy-mode: ids
     copy-iface: s2-eth1
     buffer-size: 64535
     use-mmap: no
   - interface: s2-eth1
-    threads: 1
+    threads: 2
     cluster-id: 97
     defrag: yes
     cluster-type: cluster_flow
-    copy-mode: ips
+    copy-mode: ids
     copy-iface: s2-eth0
     buffer-size: 64535
     use-mmap: no
   - interface: s2-eth2
-    threads: 1
+    threads: 2
     cluster-id: 96
     defrag: yes
     cluster-type: cluster_flow
-    copy-mode: ips
+    copy-mode: ids
     use-mmap: no
 
 
@@ -698,13 +698,13 @@ af-packet:
 # Cross platform libpcap capture support
 pcap:
   - interface: s2-eth0
-    threads: 2
+    threads: 4
     checksum-checks: no
   - interface: s2-eth1
-    threads: 2
+    threads: 4
     checksum-checks: no 
   - interface: s2-eth2
-    threads: 2
+    threads: 4
     checksum-checks: no
     # On Linux, pcap will try to use mmap'ed capture and will use "buffer-size"
     # as total memory used by the ring. So set this to something bigger
@@ -1447,7 +1447,7 @@ decoder:
 # If the argument specified is 0, the engine uses an internally defined
 # default limit.  When a value is not specified, there are no limits on the recursion.
 detect:
-  profile: medium
+  profile: high
   custom-values:
     toclient-groups: 3
     toserver-groups: 25
@@ -1941,7 +1941,7 @@ rule-files:
   # - http2-events.rules
   # - http-events.rules
   - ipsec-events.rules
-  - kerberos-events.rules
+  # - kerberos-events.rules
   # - modbus-events.rules
   - mqtt-events.rules
   - nfs-events.rules
@@ -1972,12 +1972,22 @@ rule-files:
   - emerging-policy.rules
   - emerging-activex.rules
   - emerging-ftp.rules
+  - botcc.rules
+  - botcc.portgrouped.rules
+  - emerging-netbios.rules
+  - emerging-shellcode.rules
+  - emerging-ja3.rules
+  - emerging-worm.rules
+  - emerging-smtp.rules
+  - emerging-user_agents.rules
+  - emerging-web_specific_apps.rules
+  - emerging-mobile_malware.rules
 
 ##
 ## Auxiliary configuration files.
 ##
 
-classification-file: /etc/suricata/classification.config
+classification-file: /home/lyn/filter/suricata/config/rules/classification.config
 reference-config-file: /etc/suricata/reference.config
 # threshold-file: /etc/suricata/threshold.config
 

@@ -127,7 +127,7 @@ def run():
 
     # Suricata forwarding
     s1 = net.get("s1")
-    # s1.cmd("sysctl net.ipv4.ip_forward=1")
+    s1.cmd("sysctl net.ipv4.ip_forward=1")
     s1.cmd("suricata -c config/suricata.yaml --pcap &")
     # s1.cmd("suricata -c config/suricata.yaml --af-packet &")
     s1.cmd("ip route add 10.0.1.1 dev s1-eth0")
@@ -143,7 +143,7 @@ def run():
 
     
     s2 = net.get("s2")
-    # s2.cmd("sysctl net.ipv4.ip_forward=1")
+    s2.cmd("sysctl net.ipv4.ip_forward=1")
     s2.cmd("suricata -c config/suricata2.yaml --pcap &")
     # s2.cmd("suricata -c config/suricata2.yaml --af-packet &")
     s2.cmd("ip route add 10.0.1.1 dev s2-eth0")

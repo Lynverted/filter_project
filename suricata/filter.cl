@@ -2,9 +2,7 @@
  
 // Filter elements
 clone :: Tee();
-// vlan2 :: VLANEncap(0x5678);
-
-aggIP :: AggregateIPFlows(TCP_TIMEOUT 60);
+aggIP :: AggregateIPFlows(TCP_TIMEOUT 60, REAP 1, FRAGMENTS false);
 agg1, agg2, agg3, agg4, agg5, agg6, agg7, agg8, agg9, agg10 :: AggregateFirst();
 
 clientIn :: FromDevice(filter-eth0);
